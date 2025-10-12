@@ -6,6 +6,7 @@ export interface Club {
   id: string;
   name: string;
   description?: string;
+  imageUrl?: string;
 }
 
 export interface User {
@@ -48,9 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           role: 'coordinator',
           clubs: [
-            { id: 'c1', name: 'Music Club', description: 'A club for music enthusiasts' },
-            { id: 'c2', name: 'Drama Club', description: 'Theatrical performances and workshops' },
-            { id: 'c3', name: 'Coding Club', description: 'Learn and practice programming' },
+            { id: 'c1', name: 'Music Club', description: 'A club for music enthusiasts', imageUrl: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop' },
+            { id: 'c2', name: 'Drama Club', description: 'Theatrical performances and workshops', imageUrl: 'https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=400&h=400&fit=crop' },
+            { id: 'c3', name: 'Coding Club', description: 'Learn and practice programming', imageUrl: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=400&fit=crop' },
           ],
         }
       : {
@@ -59,8 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           role: 'member',
           clubs: [
-            { id: 'c1', name: 'Music Club', description: 'A club for music enthusiasts' },
-            { id: 'c2', name: 'Drama Club', description: 'Theatrical performances and workshops' },
+            { id: 'c1', name: 'Music Club', description: 'A club for music enthusiasts', imageUrl: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop' },
+            { id: 'c2', name: 'Drama Club', description: 'Theatrical performances and workshops', imageUrl: 'https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=400&h=400&fit=crop' },
           ],
         };
 
