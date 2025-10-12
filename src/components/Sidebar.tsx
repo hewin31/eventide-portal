@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Home, User, LogOut, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface SidebarProps {
   className?: string;
@@ -20,11 +21,14 @@ export const Sidebar = ({ className }: SidebarProps) => {
   return (
     <aside className={cn("w-64 bg-card border-r border-border flex flex-col", className)}>
       <div className="p-6 border-b border-border">
-        <div className="flex items-center gap-2 mb-2">
-          <GraduationCap className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            ClubHub
-          </h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              ClubHub
+            </h1>
+          </div>
+          <ThemeToggle />
         </div>
         <p className="text-sm text-muted-foreground">{user?.name}</p>
         <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
