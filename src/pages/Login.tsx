@@ -87,14 +87,7 @@ const Login = () => {
               </Link>
             </div>
           </form>
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium mb-2">Demo Credentials:</p>
-            <p className="text-xs text-muted-foreground">
-              Member: any email without "coordinator"<br />
-              Coordinator: include "coordinator" in email<br />
-              Password: any password
-            </p>
-          </div>
+          
         </CardContent>
       </Card>
     </div>

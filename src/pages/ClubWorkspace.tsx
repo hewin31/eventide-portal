@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Calendar, Plus, Users, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Plus, Users, Info, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ManageMembers } from '@/components/ManageMembers';
 import { API_BASE_URL } from '@/lib/utils';
@@ -83,10 +83,10 @@ const ClubWorkspace = () => {
               Back to Clubs
             </Button>
             <div className="mb-6">
-              {club.imageUrl && (
-                <div className="relative h-48 rounded-2xl overflow-hidden mb-6 shadow-xl">
+              {club.imageUrl ? (
+                <div className="relative h-48 rounded-2xl overflow-hidden">
                   <img 
-                    src={club.imageUrl} 
+                    src={`${API_BASE_URL}/api/images/${club.imageUrl}`}
                     alt={club.name}
                     className="w-full h-full object-cover"
                   />
@@ -95,14 +95,13 @@ const ClubWorkspace = () => {
                     <h1 className="text-5xl font-bold text-white drop-shadow-2xl">{club.name}</h1>
                   </div>
                 </div>
-              )}
-              {!club.imageUrl && (
+              ) : (
                 <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                   {club.name}
                 </h1>
               )}
-              <p className="text-muted-foreground text-lg">{club.description}</p>
             </div>
+            <p className="text-muted-foreground text-lg">{club.description}</p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -198,9 +197,17 @@ const ClubWorkspace = () => {
 
             <TabsContent value="info" className="space-y-6">
               <Card className="overflow-hidden border-0 bg-gradient-to-br from-card via-card to-card/80">
-                <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10">
-                  <CardTitle className="text-2xl">Club Information</CardTitle>
-                  <CardDescription>Details about this club</CardDescription>
+                <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl">Club Information</CardTitle>
+                    <CardDescription>Details about this club</CardDescription>
+                  </div>
+                  {user?.role === 'coordinator' && (
+                    <Button variant="outline" onClick={() => navigate(`/club/${clubId}/edit`)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Info
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
@@ -211,11 +218,11 @@ const ClubWorkspace = () => {
                     <p className="text-muted-foreground leading-relaxed">{club.description}</p>
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
-                    <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
+                    <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
                       Coordinators
                     </h3>
-                    {club.coordinator && (
+                    {club.coordinator ? (
                       <div className="space-y-2">
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
                           <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -224,14 +231,16 @@ const ClubWorkspace = () => {
                           <span className="font-medium">{club.coordinator.name}</span>
                         </div>
                       </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">No coordinator assigned.</p>
                     )}
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
-                    <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
+                    <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
                       Members
                     </h3>
-                    <p className="text-muted-foreground mb-3">{club.members?.length || 0} active members</p>
+                    <p className="text-muted-foreground mb-4">{club.members?.length || 0} active members</p>
                     {user?.role === 'coordinator' && (
                       <Button 
                         variant="outline" 

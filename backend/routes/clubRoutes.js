@@ -64,6 +64,29 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// @route   PUT /api/clubs/:id
+// @desc    Update club details
+// @access  Private (Coordinator only)
+router.put('/:id', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
+  try {
+    const club = await Club.findById(req.params.id);
+
+    if (!club) {
+      return res.status(404).json({ msg: 'Club not found' });
+    }
+
+    // Ensure the user is the coordinator of this club
+    if (club.coordinator.toString() !== req.user.id) {
+      return res.status(403).json({ msg: 'User not authorized' });
+    }
+
+    const updatedClub = await Club.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    res.json(updatedClub);
+  } catch (err) {
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   POST /api/clubs/:id/members
 // @desc    Add a member to a club
 // @access  Private (Coordinator only)

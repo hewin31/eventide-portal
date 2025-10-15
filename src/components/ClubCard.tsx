@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Users } from 'lucide-react';
 import { Club } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/lib/utils';
 
 interface ClubCardProps {
   club: Club;
@@ -14,7 +15,7 @@ export const ClubCard = ({ club, onOpen }: ClubCardProps) => {
       <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20">
         {club.imageUrl ? (
           <img 
-            src={club.imageUrl} 
+            src={`${API_BASE_URL}/api/images/${club.imageUrl}`} 
             alt={club.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />

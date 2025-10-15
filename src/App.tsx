@@ -10,6 +10,7 @@ import Register from "./pages/Register"; // <- import Register page
 import Dashboard from "./pages/Dashboard";
 import ClubWorkspace from "./pages/ClubWorkspace";
 import CreateEvent from "./pages/CreateEvent";
+import EditClub from "./pages/EditClub";
 import EditEvent from "./pages/EditEvent";
 import EventManagement from "./pages/EventManagement";
 import Profile from "./pages/Profile";
@@ -54,6 +55,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CreateEvent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/club/:clubId/edit"
+              element={
+                <ProtectedRoute>
+                  <EditClub />
                 </ProtectedRoute>
               }
             />
