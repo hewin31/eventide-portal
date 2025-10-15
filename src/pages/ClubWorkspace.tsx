@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Calendar, Plus, Users, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ManageMembers } from '@/components/ManageMembers';
 
 // Mock event data
 const mockEvents = [
@@ -44,6 +45,7 @@ const ClubWorkspace = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('events');
+  const [showManageMembers, setShowManageMembers] = useState(false);
 
   const club = user?.clubs.find(c => c.id === clubId);
 
@@ -111,7 +113,10 @@ const ClubWorkspace = () => {
               <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold">Club Events</h2>
                 {user?.role === 'member' && (
-                  <Button className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300">
+                  <Button 
+                    onClick={() => navigate(`/club/${clubId}/create-event`)}
+                    className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Create Event
                   </Button>
@@ -217,7 +222,11 @@ const ClubWorkspace = () => {
                     </h3>
                     <p className="text-muted-foreground mb-3">45 active members</p>
                     {user?.role === 'coordinator' && (
-                      <Button variant="outline" className="hover:bg-primary/10 hover:border-primary transition-all duration-300">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowManageMembers(true)}
+                        className="hover:bg-primary/10 hover:border-primary transition-all duration-300"
+                      >
                         Manage Members
                       </Button>
                     )}
@@ -228,6 +237,12 @@ const ClubWorkspace = () => {
           </Tabs>
         </div>
       </main>
+
+      <ManageMembers 
+        open={showManageMembers} 
+        onOpenChange={setShowManageMembers}
+        clubName={club.name}
+      />
     </div>
   );
 };

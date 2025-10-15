@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ClubWorkspace from "./pages/ClubWorkspace";
+import CreateEvent from "./pages/CreateEvent";
 import EventManagement from "./pages/EventManagement";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ClubWorkspace />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/club/:clubId/create-event" 
+              element={
+                <ProtectedRoute>
+                  <CreateEvent />
                 </ProtectedRoute>
               } 
             />
