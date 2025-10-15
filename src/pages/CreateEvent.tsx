@@ -12,6 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ArrowLeft, Plus, Trash2, Upload, Calendar, MapPin, Users, DollarSign, Image as ImageIcon, Save, Send } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { API_BASE_URL } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ContactPerson {
   id: string;
@@ -25,6 +27,9 @@ const CreateEvent = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const token = localStorage.getItem('token');
+  const [isLoading, setIsLoading] = useState(false);
 
   const club = user?.clubs.find(c => c.id === clubId);
 
@@ -99,22 +104,48 @@ const CreateEvent = () => {
     });
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
+    setIsLoading(true);
     // Validation
-    if (!eventData.name || !eventData.description || !posterImage) {
+    if (!eventData.name || !eventData.description) {
       toast({
         title: "Missing Required Fields",
-        description: "Please fill all required fields before publishing.",
+        description: "Please fill in the event name and description.",
         variant: "destructive",
       });
       return;
+      setIsLoading(false);
     }
 
-    toast({
-      title: "Event Published!",
-      description: "Your event is now live for student registration.",
-    });
-    navigate(`/club/${clubId}`);
+    // In a real app, you would use FormData to upload images.
+    // For now, we'll send the data as JSON and assume imageUrl is handled separately or is a URL.
+    const payload = {
+      ...eventData,
+      imageUrl: posterPreview, // Send the base64 preview, or handle upload and get URL
+      clubId,
+      contactPersons,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Failed to publish event');
+
+      await queryClient.invalidateQueries({ queryKey: ['events', clubId] });
+      toast({ title: "Event Published!", description: "Your event is now live." });
+      navigate(`/club/${clubId}`);
+    } catch (error) {
+      toast({ title: "Error", description: "Could not publish event.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!club) {
@@ -151,11 +182,11 @@ const CreateEvent = () => {
                 <p className="text-muted-foreground">Enter event details to publish it for student registration.</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={handleSaveDraft}>
+                <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Draft
                 </Button>
-                <Button onClick={handlePublish} className="bg-gradient-to-r from-primary to-secondary">
+                <Button onClick={handlePublish} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
                   <Send className="mr-2 h-4 w-4" />
                   Publish Event
                 </Button>
@@ -635,11 +666,11 @@ const CreateEvent = () => {
             <Button variant="outline" onClick={() => navigate(`/club/${clubId}`)}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleSaveDraft}>
+            <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
               <Save className="mr-2 h-4 w-4" />
               Save Draft
             </Button>
-            <Button onClick={handlePublish} className="bg-gradient-to-r from-primary to-secondary">
+            <Button onClick={handlePublish} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
               <Send className="mr-2 h-4 w-4" />
               Publish Event
             </Button>

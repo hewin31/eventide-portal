@@ -7,13 +7,18 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 // Create event (coordinator only)
 router.post('/', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
   try {
-    const { name, description, date, time, venue, imageUrl, clubId } = req.body;
+    // Destructure all the fields from the detailed form
+    const { clubId, ...eventData } = req.body;
     const createdById = req.user.id;
 
-    const event = new Event({ name, description, date, time, venue, imageUrl, club: clubId, createdBy: createdById });
+    const event = new Event({ 
+      ...eventData,
+      club: clubId, 
+      createdBy: createdById
+    });
     await event.save();
 
-    res.status(201).json({ message: 'Event created', event });
+    res.status(201).json(event);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -59,6 +64,26 @@ router.get('/:id/registrations', async (req, res) => {
     res.json({ registeredStudents: event.registeredStudents, attendance });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// @route   GET /api/events/:id
+// @desc    Get a single event by ID
+// @access  Private
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id).populate('club', 'name');
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.json(event);
+  } catch (err) {
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 
