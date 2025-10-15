@@ -49,7 +49,12 @@ router.post('/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, clubs: user.clubs },
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role, 
+        clubs: (user.clubs || []).map(c => ({...c.toObject(), id: c._id.toString()})) },
     });
   } catch (err) {
     res.status(400).json({ error: err.message });

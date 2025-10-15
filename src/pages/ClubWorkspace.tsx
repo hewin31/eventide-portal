@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,37 +9,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Calendar, Plus, Users, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ManageMembers } from '@/components/ManageMembers';
+import { API_BASE_URL } from '@/lib/utils';
 
-// Mock event data
-const mockEvents = [
-  {
-    id: 'e1',
-    name: 'Annual Music Concert',
-    date: '2025-11-15',
-    time: '18:00',
-    status: 'upcoming',
-    registeredCount: 45,
-    imageUrl: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=600&h=400&fit=crop',
-  },
-  {
-    id: 'e2',
-    name: 'Workshop: Music Production',
-    date: '2025-10-20',
-    time: '14:00',
-    status: 'upcoming',
-    registeredCount: 30,
-    imageUrl: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600&h=400&fit=crop',
-  },
-  {
-    id: 'e3',
-    name: 'Freshers Welcome Event',
-    date: '2025-09-05',
-    time: '16:00',
-    status: 'completed',
-    registeredCount: 120,
-    imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop',
-  },
-];
+async function fetchClubDetails(clubId: string, token: string | null) {
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch club details');
+  }
+  return res.json();
+}
+
+async function fetchClubEvents(clubId: string, token: string | null) {
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE_URL}/api/events/club/${clubId}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch events');
+  return res.json();
+}
 
 const ClubWorkspace = () => {
   const { clubId } = useParams();
@@ -46,14 +39,29 @@ const ClubWorkspace = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('events');
   const [showManageMembers, setShowManageMembers] = useState(false);
+  const token = localStorage.getItem('token');
 
-  const club = user?.clubs.find(c => c.id === clubId);
+  const { data: club, isLoading, error } = useQuery({
+    queryKey: ['club', clubId],
+    queryFn: () => fetchClubDetails(clubId!, token),
+    enabled: !!clubId && !!token,
+  });
 
-  if (!club) {
+  const { data: events, isLoading: eventsLoading } = useQuery({
+    queryKey: ['events', clubId],
+    queryFn: () => fetchClubEvents(clubId!, token),
+    enabled: !!clubId && !!token,
+  });
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading club...</div>;
+  }
+
+  if (error || !club) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Club Not Found</h2>
+          <h2 className="text-2xl font-bold mb-2">{error ? 'Error loading club' : 'Club Not Found'}</h2>
           <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
         </div>
       </div>
@@ -112,7 +120,7 @@ const ClubWorkspace = () => {
             <TabsContent value="events" className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold">Club Events</h2>
-                {(user?.role === 'coordinator' || user?.role === 'faculty') && (
+                {user?.role === 'coordinator' && (
                   <Button 
                     onClick={() => navigate(`/club/${clubId}/create-event`)}
                     className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
@@ -124,13 +132,14 @@ const ClubWorkspace = () => {
               </div>
 
               <div className="grid gap-6">
-                {mockEvents.map((event) => (
-                  <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-all duration-500 group border-0 bg-gradient-to-br from-card via-card to-card/80">
+                {eventsLoading && <p>Loading events...</p>}
+                {events && events.map((event: any) => (
+                  <Card key={event._id} className="overflow-hidden hover:shadow-2xl transition-all duration-500 group border-0 bg-gradient-to-br from-card via-card to-card/80">
                     <div className="flex flex-col md:flex-row">
                       <div className="relative md:w-64 h-48 md:h-auto overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20">
                         {event.imageUrl ? (
                           <img 
-                            src={event.imageUrl} 
+                            src={event.imageUrl}
                             alt={event.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
@@ -141,7 +150,7 @@ const ClubWorkspace = () => {
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                         <Badge 
-                          variant={event.status === 'upcoming' ? 'default' : 'secondary'}
+                          variant={event.status === 'approved' ? 'default' : 'secondary'}
                           className="absolute top-4 right-4 shadow-lg"
                         >
                           {event.status}
@@ -167,13 +176,13 @@ const ClubWorkspace = () => {
                             <span>•</span>
                             <span className="flex items-center gap-2">
                               <Users className="h-4 w-4" />
-                              {event.registeredCount} registered
+                              {event.registeredStudents?.length || 0} registered
                             </span>
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-0">
                           <Button 
-                            onClick={() => handleManageEvent(event.id)}
+                            onClick={() => handleManageEvent(event._id)}
                             className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
                           >
                             Manage Event
@@ -206,21 +215,23 @@ const ClubWorkspace = () => {
                       <Users className="h-5 w-5 text-primary" />
                       Coordinators
                     </h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
-                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
+                    {club.coordinator && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+                          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-primary" />
+                          </div>
+                          <span className="font-medium">{club.coordinator.name}</span>
                         </div>
-                        <span className="font-medium">Dr. Faculty Coordinator</span>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
                     <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
                       Members
                     </h3>
-                    <p className="text-muted-foreground mb-3">45 active members</p>
+                    <p className="text-muted-foreground mb-3">{club.members?.length || 0} active members</p>
                     {user?.role === 'coordinator' && (
                       <Button 
                         variant="outline" 
@@ -242,6 +253,8 @@ const ClubWorkspace = () => {
         open={showManageMembers} 
         onOpenChange={setShowManageMembers}
         clubName={club.name}
+        clubId={club._id}
+        currentMembers={club.members}
       />
     </div>
   );

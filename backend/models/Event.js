@@ -1,11 +1,37 @@
 const mongoose = require('mongoose');
 
-const EventSchema = new mongoose.Schema({
+const ContactPersonSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  phone: { type: String, required: true },
+  designation: { type: String },
+  whatsappLink: { type: String, required: true },
+});
+
+const EventSchema = new mongoose.Schema({
   club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  registeredStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  name: { type: String, required: true },
+  description: { type: String, required: true },
+  eventType: { type: String, enum: ['technical', 'non-technical', 'workshop', 'cultural', 'sports'], required: true },
+  eventCategory: { type: String, enum: ['club', 'department', 'college'], required: true },
+  startDateTime: { type: Date, required: true },
+  endDateTime: { type: Date, required: true },
+  registrationDeadline: { type: Date },
+  venue: { type: String, required: true },
+  mode: { type: String, enum: ['online', 'offline', 'hybrid'], required: true },
+  requiresFee: { type: Boolean, default: false },
+  feeAmount: { type: Number },
+  qrCodeImage: { type: String }, // store URL if uploaded to cloud
+  maxParticipants: { type: Number },
+  totalSeats: { type: Number },
+  eligibility: { type: String },
+  registrationLink: { type: String },
+  contactPersons: [ContactPersonSchema],
+  posterImage: { type: String }, // store URL
+  galleryImages: [{ type: String }], // array of URLs
+  enableAttendance: { type: Boolean, default: false },
+  requireODApproval: { type: Boolean, default: false },
+  themeColor: { type: String, default: '#3b82f6' },
+  createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('Event', EventSchema);

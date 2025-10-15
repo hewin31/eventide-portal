@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { login as apiLogin, register as apiRegister } from "../services/authService";
 
-export type UserRole = "member" | "coordinator" | "faculty" | "student";
+export type UserRole = "member" | "coordinator" | "student";
 
 export interface Club {
   id: string;

@@ -4,12 +4,15 @@ const Event = require('../models/Event');
 const Attendance = require('../models/Attendance');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// Create event (member only)
-router.post('/', authenticateToken, authorizeRoles('member'), async (req, res) => {
+// Create event (coordinator only)
+router.post('/', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
   try {
-    const { name, clubId, createdById } = req.body;
-    const event = new Event({ name, club: clubId, createdBy: createdById });
+    const { name, description, date, time, venue, imageUrl, clubId } = req.body;
+    const createdById = req.user.id;
+
+    const event = new Event({ name, description, date, time, venue, imageUrl, club: clubId, createdBy: createdById });
     await event.save();
+
     res.status(201).json({ message: 'Event created', event });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -17,7 +20,7 @@ router.post('/', authenticateToken, authorizeRoles('member'), async (req, res) =
 });
 
 // Update event status (faculty)
-router.patch('/:id/status', authenticateToken, authorizeRoles('faculty'), async (req, res) => {
+router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
   try {
     const { status } = req.body;
     if (!['approved', 'rejected'].includes(status))
@@ -54,6 +57,18 @@ router.get('/:id/registrations', async (req, res) => {
     if (!event) return res.status(404).json({ error: 'Event not found' });
     const attendance = await Attendance.find({ event: req.params.id }).populate('student', 'name email role present odStatus');
     res.json({ registeredStudents: event.registeredStudents, attendance });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// @route   GET /api/events/club/:clubId
+// @desc    Get all events for a specific club
+// @access  Private
+router.get('/club/:clubId', authenticateToken, async (req, res) => {
+  try {
+    const events = await Event.find({ club: req.params.clubId }).sort({ date: -1 });
+    res.json(events);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

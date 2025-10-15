@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const clubRoutes = require('./routes/clubRoutes');
 const eventRoutes = require('./routes/eventRoutes');
+const userRoutes = require('./routes/userRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 
 const app = express();
@@ -19,6 +20,7 @@ app.get('/', (req, res) => res.send('API is running'));
 app.use('/api/auth', authRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/attendance', attendanceRoutes);
 
 // Connect DB + start server
