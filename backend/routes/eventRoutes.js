@@ -4,8 +4,8 @@ const Event = require('../models/Event');
 const Attendance = require('../models/Attendance');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// Create event (coordinator only)
-router.post('/', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
+// Create event (member only)
+router.post('/', authenticateToken, authorizeRoles('member'), async (req, res) => {
   try {
     // Destructure all the fields from the detailed form
     const { clubId, ...eventData } = req.body;
