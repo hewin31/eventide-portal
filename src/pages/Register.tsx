@@ -24,16 +24,21 @@ const Register = () => {
       await register({ name, email, password, role });
       toast.success("Registration successful!");
       navigate("/dashboard");
-    } catch (error) {
-      toast.error("Registration failed. Try again.");
+    } catch (err) {
+      // The error from AuthService should have a response object
+      if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data) {
+        toast.error(err.response.data.error as string);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
+          <CardTitle className="text-3xl font-bold text-foreground">Create an Account</CardTitle>
           <CardDescription className="text-base mt-2">Register to manage your college clubs</CardDescription>
         </CardHeader>
         <CardContent>
@@ -52,13 +57,13 @@ const Register = () => {
             </div>
             <div>
               <Label htmlFor="role">Role</Label>
-              <select id="role" value={role} onChange={(e) => setRole(e.target.value as UserRole)} className="w-full p-2 border rounded">
+              <select id="role" value={role} onChange={(e) => setRole(e.target.value as UserRole)} className="w-full p-2.5 border rounded-md bg-transparent">
                 <option value="student">Student</option>
                 <option value="member">Member</option>
                 <option value="coordinator">Coordinator</option>
               </select>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading}>
               {isLoading ? "Registering..." : <><UserPlus className="mr-2 h-4 w-4" /> Register</>}
             </Button>
           </form>

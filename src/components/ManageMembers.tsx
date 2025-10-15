@@ -21,7 +21,7 @@ import {
 import { API_BASE_URL } from '@/lib/utils';
 
 interface Member {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: 'student' | 'member' | 'coordinator';
@@ -30,7 +30,7 @@ interface Member {
 }
 
 interface SearchResult {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   department?: string;
@@ -155,7 +155,7 @@ export function ManageMembers({ open, onOpenChange, clubName, clubId, currentMem
                 <Card className="p-2 max-h-48 overflow-y-auto">
                   {searchResults.map((user) => (
                     <button
-                      key={user.id}
+                      key={user._id}
                       onClick={() => handleSelectUser(user)}
                       className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
                     >
@@ -187,7 +187,7 @@ export function ManageMembers({ open, onOpenChange, clubName, clubId, currentMem
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {members.map((member) => (
-                  <Card key={member.id} className="p-4 hover:shadow-md transition-shadow">
+                  <Card key={member._id} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
                         <Avatar className="h-12 w-12">

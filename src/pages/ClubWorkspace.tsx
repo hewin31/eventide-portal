@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +10,7 @@ import { ArrowLeft, Calendar, Plus, Users, Info, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ManageMembers } from '@/components/ManageMembers';
 import { API_BASE_URL } from '@/lib/utils';
+import { toast } from 'sonner';
 
 async function fetchClubDetails(clubId: string, token: string | null) {
   if (!token) throw new Error('Not authenticated');
@@ -40,6 +41,7 @@ const ClubWorkspace = () => {
   const [activeTab, setActiveTab] = useState('events');
   const [showManageMembers, setShowManageMembers] = useState(false);
   const token = localStorage.getItem('token');
+  const queryClient = useQueryClient();
 
   const { data: club, isLoading, error } = useQuery({
     queryKey: ['club', clubId],
@@ -51,6 +53,26 @@ const ClubWorkspace = () => {
     queryKey: ['events', clubId],
     queryFn: () => fetchClubEvents(clubId!, token),
     enabled: !!clubId && !!token,
+  });
+
+  const updateEventStatusMutation = useMutation({
+    mutationFn: ({ eventId, status }: { eventId: string; status: 'approved' | 'rejected' }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+    },
+    onSuccess: () => {
+      toast.success('Event status updated!');
+      queryClient.invalidateQueries({ queryKey: ['events', clubId] });
+    },
+    onError: () => {
+      toast.error('Failed to update event status.');
+    },
   });
 
   if (isLoading) {
@@ -105,7 +127,7 @@ const ClubWorkspace = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/50 backdrop-blur-sm p-1 h-12">
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted p-1 h-12">
               <TabsTrigger value="events" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-secondary data-[state=active]:text-white">
                 <Calendar className="mr-2 h-4 w-4" />
                 Events
@@ -132,7 +154,7 @@ const ClubWorkspace = () => {
 
               <div className="grid gap-6">
                 {eventsLoading && <p>Loading events...</p>}
-                {events && events.map((event: any) => (
+                {events && events.length > 0 && events.map((event: any) => (
                   <Card key={event._id} className="overflow-hidden hover:shadow-2xl transition-all duration-500 group border-0 bg-gradient-to-br from-card via-card to-card/80">
                     <div className="flex flex-col md:flex-row">
                       <div className="relative md:w-64 h-48 md:h-auto overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20">
@@ -143,7 +165,7 @@ const ClubWorkspace = () => {
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-secondary/30">
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
                             <Calendar className="h-16 w-16 text-primary opacity-50" />
                           </div>
                         )}
@@ -179,7 +201,7 @@ const ClubWorkspace = () => {
                             </span>
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-0">
+                        <CardContent className="pt-0 flex items-center gap-4">
                           <Button 
                             onClick={() => handleManageEvent(event._id)}
                             className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
@@ -187,11 +209,34 @@ const ClubWorkspace = () => {
                             Manage Event
                             <ArrowLeft className="ml-2 h-4 w-4 rotate-180 group-hover:translate-x-1 transition-transform" />
                           </Button>
+                          {user?.role === 'coordinator' && event.status === 'pending' && (
+                            <>
+                              <Button 
+                                variant="outline"
+                                onClick={() => updateEventStatusMutation.mutate({ eventId: event._id, status: 'approved' })}
+                                disabled={updateEventStatusMutation.isPending}
+                              >
+                                Approve
+                              </Button>
+                              <Button 
+                                variant="destructive"
+                                onClick={() => updateEventStatusMutation.mutate({ eventId: event._id, status: 'rejected' })}
+                                disabled={updateEventStatusMutation.isPending}
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          )}
                         </CardContent>
                       </div>
                     </div>
                   </Card>
                 ))}
+                {events && events.length === 0 && !eventsLoading && (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <p>No events found for this club yet.</p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -210,21 +255,21 @@ const ClubWorkspace = () => {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
+                  <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-3 text-lg flex items-center gap-2">
                       <Info className="h-5 w-5 text-primary" />
                       Description
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">{club.description}</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
+                  <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
                       Coordinators
                     </h3>
                     {club.coordinator ? (
                       <div className="space-y-2">
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-background">
                           <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                             <Users className="h-5 w-5 text-primary" />
                           </div>
@@ -235,7 +280,7 @@ const ClubWorkspace = () => {
                       <p className="text-muted-foreground text-sm">No coordinator assigned.</p>
                     )}
                   </div>
-                  <div className="p-4 rounded-lg bg-muted/50 backdrop-blur-sm">
+                  <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" />
                       Members

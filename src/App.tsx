@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import ClubWorkspace from "./pages/ClubWorkspace";
 import CreateEvent from "./pages/CreateEvent";
 import EditClub from "./pages/EditClub";
+import AllEvents from "./pages/AllEvents";
 import EditEvent from "./pages/EditEvent";
 import EventManagement from "./pages/EventManagement";
 import Profile from "./pages/Profile";
@@ -39,6 +40,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute>
+                  <AllEvents />
                 </ProtectedRoute>
               }
             />

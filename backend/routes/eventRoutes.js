@@ -60,10 +60,10 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), as
 // Register student for event (student only)
 router.post('/:id/register', authenticateToken, authorizeRoles('student'), async (req, res) => {
   try {
-    const { studentId } = req.body;
+    const studentId = req.user.id; // Use authenticated user's ID for security
     const event = await Event.findByIdAndUpdate(
       req.params.id,
-      { $addToSet: { registeredStudents: studentId } },
+      { $addToSet: { registeredStudents: studentId } }, // $addToSet prevents duplicates
       { new: true }
     );
     if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -74,7 +74,7 @@ router.post('/:id/register', authenticateToken, authorizeRoles('student'), async
 });
 
 // Get registered students + attendance
-router.get('/:id/registrations', async (req, res) => {
+router.get('/:id/registrations', authenticateToken, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('registeredStudents', 'name email role');
     if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -114,6 +114,20 @@ router.get('/club/:clubId', authenticateToken, async (req, res) => {
     res.json(events);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// @route   GET /api/events
+// @desc    Get all approved events from all clubs
+// @access  Private (students only)
+router.get('/', authenticateToken, authorizeRoles('student'), async (req, res) => {
+  try {
+    const events = await Event.find({ status: 'approved' })
+      .populate('club', 'name')
+      .sort({ startDateTime: -1 });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 

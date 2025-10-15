@@ -29,8 +29,10 @@ const EventSchema = new mongoose.Schema({
   posterImage: { type: mongoose.Schema.Types.ObjectId },
   galleryImages: [{ type: mongoose.Schema.Types.ObjectId }],
   enableAttendance: { type: Boolean, default: false },
+  registeredStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   requireODApproval: { type: Boolean, default: false },
   themeColor: { type: String, default: '#3b82f6' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
 });
 

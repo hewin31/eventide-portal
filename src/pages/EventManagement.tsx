@@ -23,7 +23,9 @@ async function fetchEventDetails(eventId: string, token: string | null) {
 async function fetchEventRegistrations(eventId: string, token: string | null) {
   if (!token) throw new Error('Not authenticated');
   const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/registrations`, {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { 
+      'Authorization': `Bearer ${token}` 
+    }
   });
   if (!res.ok) throw new Error('Failed to fetch registration data');
   return res.json();

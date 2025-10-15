@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Home, User, LogOut, GraduationCap } from 'lucide-react';
+import { Home, User, LogOut, GraduationCap, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -39,6 +39,12 @@ export const Sidebar = ({ className }: SidebarProps) => {
           <Button variant="ghost" className="w-full justify-start">
             <Home className="mr-2 h-4 w-4" />
             My Clubs
+          </Button>
+        </Link>
+        <Link to="/events">
+          <Button variant="ghost" className="w-full justify-start">
+            <Calendar className="mr-2 h-4 w-4" />
+            All Events
           </Button>
         </Link>
         <Link to="/profile">
