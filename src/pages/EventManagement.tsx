@@ -130,7 +130,9 @@ const EventManagement = () => {
                       <p className="text-muted-foreground">{event.description}</p>
                     </div>
                   </div>
-                  <Button>Edit Details</Button>
+                  {user?.role === 'member' && (
+                    <Button onClick={() => navigate(`/club/${clubId}/event/${eventId}/edit`)}>Edit Details</Button>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

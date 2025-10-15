@@ -20,14 +20,14 @@ const EventSchema = new mongoose.Schema({
   mode: { type: String, enum: ['online', 'offline', 'hybrid'], required: true },
   requiresFee: { type: Boolean, default: false },
   feeAmount: { type: Number },
-  qrCodeImage: { type: String }, // store URL if uploaded to cloud
+  qrCodeImage: { type: mongoose.Schema.Types.ObjectId },
   maxParticipants: { type: Number },
   totalSeats: { type: Number },
   eligibility: { type: String },
   registrationLink: { type: String },
   contactPersons: [ContactPersonSchema],
-  posterImage: { type: String }, // store URL
-  galleryImages: [{ type: String }], // array of URLs
+  posterImage: { type: mongoose.Schema.Types.ObjectId },
+  galleryImages: [{ type: mongoose.Schema.Types.ObjectId }],
   enableAttendance: { type: Boolean, default: false },
   requireODApproval: { type: Boolean, default: false },
   themeColor: { type: String, default: '#3b82f6' },

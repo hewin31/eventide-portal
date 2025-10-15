@@ -103,7 +103,7 @@ export function ManageMembers({ open, onOpenChange, clubName, clubId, currentMem
   const handleRemoveMember = async () => {
     if (!memberToRemove) return;
 
-    const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/members/${memberToRemove.id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/members/${memberToRemove._id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });

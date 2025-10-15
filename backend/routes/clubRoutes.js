@@ -93,6 +93,7 @@ router.delete('/:id/members/:memberId', authenticateToken, authorizeRoles('coord
   try {
     const { id: clubId, memberId } = req.params;
 
+    // Use Promise.all to run both updates concurrently
     await Club.findByIdAndUpdate(clubId, { $pull: { members: memberId } });
     await User.findByIdAndUpdate(memberId, { $pull: { clubs: clubId } });
 

@@ -24,6 +24,24 @@ router.post('/', authenticateToken, authorizeRoles('member'), async (req, res) =
   }
 });
 
+// @route   PUT /api/events/:id
+// @desc    Update an event
+// @access  Private (Member only)
+router.put('/:id', authenticateToken, authorizeRoles('member'), async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    res.json(updatedEvent);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Update event status (faculty)
 router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
   try {

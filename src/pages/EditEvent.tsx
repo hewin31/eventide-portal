@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
@@ -23,13 +23,14 @@ interface ContactPerson {
   whatsappLink: string;
 }
 
-const CreateEvent = () => {
-  const { clubId } = useParams();
+const EditEvent = () => {
+  const { clubId, eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const token = localStorage.getItem('token');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
   const club = user?.clubs.find(c => c.id === clubId);
 
@@ -58,24 +59,62 @@ const CreateEvent = () => {
   const [posterPreview, setPosterPreview] = useState<string>('');
   const [qrCodeImageId, setQrCodeImageId] = useState<string | null>(null);
   const [qrCodePreview, setQrCodePreview] = useState<string>('');
-  const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [contactPersons, setContactPersons] = useState<ContactPerson[]>([
     { id: '1', name: '', phone: '', designation: '', whatsappLink: '' }
   ]);
 
+  const formatDateTimeForInput = (dateString: string | undefined) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const timezoneOffset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - timezoneOffset);
+    return localDate.toISOString().slice(0, 16);
+  };
+
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (!eventId) return;
+      setIsFetching(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch event data');
+        const data = await res.json();
+        
+        setEventData({
+          ...data,
+          startDateTime: formatDateTimeForInput(data.startDateTime),
+          endDateTime: formatDateTimeForInput(data.endDateTime),
+          registrationDeadline: formatDateTimeForInput(data.registrationDeadline),
+        });
+        setContactPersons(data.contactPersons.map((cp: any) => ({...cp, id: cp._id})));
+        if (data.posterImage) {
+          setPosterImageId(data.posterImage);
+          setPosterPreview(`${API_BASE_URL}/api/images/${data.posterImage}`);
+        }
+        if (data.qrCodeImage) {
+          setQrCodeImageId(data.qrCodeImage);
+          setQrCodePreview(`${API_BASE_URL}/api/images/${data.qrCodeImage}`);
+        }
+      } catch (error) {
+        toast({ title: "Error", description: "Could not load event data for editing.", variant: "destructive" });
+        navigate(`/club/${clubId}`);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    fetchEventData();
+  }, [eventId, clubId, token, navigate]);
+
   const handleImageUpload = async (file: File, type: 'poster' | 'qr') => {
-    // Create a preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      if (type === 'poster') {
-        setPosterPreview(reader.result as string);
-      } else {
-        setQrCodePreview(reader.result as string);
-      }
+      if (type === 'poster') setPosterPreview(reader.result as string);
+      else setQrCodePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    // Upload the file
     const formData = new FormData();
     formData.append('file', file);
 
@@ -94,13 +133,7 @@ const CreateEvent = () => {
   };
 
   const addContactPerson = () => {
-    setContactPersons([...contactPersons, { 
-      id: Date.now().toString(), 
-      name: '', 
-      phone: '', 
-      designation: '', 
-      whatsappLink: '' 
-    }]);
+    setContactPersons([...contactPersons, { id: Date.now().toString(), name: '', phone: '', designation: '', whatsappLink: '' }]);
   };
 
   const removeContactPerson = (id: string) => {
@@ -108,60 +141,52 @@ const CreateEvent = () => {
   };
 
   const updateContactPerson = (id: string, field: keyof ContactPerson, value: string) => {
-    setContactPersons(contactPersons.map(cp => 
-      cp.id === id ? { ...cp, [field]: value } : cp
-    ));
+    setContactPersons(contactPersons.map(cp => cp.id === id ? { ...cp, [field]: value } : cp));
   };
 
-  const handleSaveDraft = () => {
-    toast({
-      title: "Draft Saved",
-      description: "Your event has been saved as draft.",
-    });
-  };
-
-  const handlePublish = async () => {
+  const handleUpdate = async () => {
     setIsLoading(true);
-    // Validation
     if (!eventData.name || !eventData.description) {
-      toast({
-        title: "Missing Required Fields",
-        description: "Please fill in the event name and description.",
-        variant: "destructive",
-      });
+      toast({ title: "Missing Required Fields", description: "Please fill in the event name and description.", variant: "destructive" });
       setIsLoading(false);
       return;
     }
 
     const payload = {
       ...eventData,
-      posterImage: posterImageId, // Send the uploaded image ID
+      posterImage: posterImageId,
       qrCodeImage: qrCodeImageId,
       clubId,
       contactPersons,
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('Failed to publish event');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update event');
+      }
 
       await queryClient.invalidateQueries({ queryKey: ['events', clubId] });
-      toast({ title: "Event Published!", description: "Your event is now live." });
-      navigate(`/club/${clubId}`);
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+
+      toast({ title: "Event Updated!", description: "Your event has been successfully updated." });
+      navigate(`/club/${clubId}/event/${eventId}`);
     } catch (error) {
-      toast({ title: "Error", description: "Could not publish event.", variant: "destructive" });
+      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isFetching) {
+    return <div className="flex min-h-screen items-center justify-center">Loading event for editing...</div>;
+  }
 
   if (!club) {
     return (
@@ -183,27 +208,23 @@ const CreateEvent = () => {
           <div className="mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => navigate(`/club/${clubId}`)} 
+              onClick={() => navigate(`/club/${clubId}/event/${eventId}`)} 
               className="mb-6 hover:bg-primary/10"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Club
+              Back to Event Management
             </Button>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                  Create New Event
+                  Edit Event
                 </h1>
-                <p className="text-muted-foreground">Enter event details to publish it for student registration.</p>
+                <p className="text-muted-foreground">Modify the details of your event.</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Draft
-                </Button>
-                <Button onClick={handlePublish} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+                <Button onClick={handleUpdate} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
                   <Send className="mr-2 h-4 w-4" />
-                  Publish Event
+                  Update Event
                 </Button>
               </div>
             </div>
@@ -678,16 +699,12 @@ const CreateEvent = () => {
 
           {/* Bottom Actions */}
           <div className="mt-8 flex justify-end gap-3 pb-8">
-            <Button variant="outline" onClick={() => navigate(`/club/${clubId}`)}>
+            <Button variant="outline" onClick={() => navigate(`/club/${clubId}/event/${eventId}`)}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Draft
-            </Button>
-            <Button onClick={handlePublish} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+            <Button onClick={handleUpdate} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
               <Send className="mr-2 h-4 w-4" />
-              Publish Event
+              Update Event
             </Button>
           </div>
         </div>
@@ -696,4 +713,4 @@ const CreateEvent = () => {
   );
 };
 
-export default CreateEvent;
+export default EditEvent;
