@@ -22,12 +22,13 @@ const Dashboard = () => {
               My Clubs
             </h1>
             <p className="text-muted-foreground text-lg">
-              {user?.role === 'coordinator' 
-                ? 'Clubs you coordinate and manage' 
+              {user?.role === 'coordinator'
+                ? 'Clubs you coordinate and manage'
                 : 'Clubs you are a member of'}
             </p>
           </div>
 
+          <h2 className="text-2xl font-semibold mb-4">My Clubs</h2>
           {user?.clubs && user.clubs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {user.clubs.map((club) => (

@@ -1,25 +1,28 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// src/contexts/AuthContext.tsx
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { login as apiLogin, register as apiRegister } from "../services/authService";
 
-export type UserRole = 'member' | 'coordinator';
+export type UserRole = "member" | "coordinator" | "faculty" | "student";
 
 export interface Club {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   imageUrl?: string;
 }
 
 export interface User {
-  userId: string;
+  id: string;
   name: string;
   email: string;
   role: UserRole;
-  clubs: Club[];
+  clubs?: Club[];
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: { name: string; email: string; password: string; role: UserRole }) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -31,51 +34,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        // The user object is now part of the token payload.
+        // We can get it by decoding the token.
+        // A more robust solution would be to verify the token, but for client-side
+        // state rehydration, decoding is a common practice.
+        // The backend ALWAYS verifies the token for secure operations.
+        const payload = JSON.parse(atob(token.split('.')[1]));
+
+        // Check if token is expired
+        if (payload.exp * 1000 < Date.now()) {
+          localStorage.removeItem("token");
+          throw new Error("Token expired");
+        }
+        setUser({ id: payload.id, name: payload.name, email: payload.email, role: payload.role });
+      } catch (err) {
+        localStorage.removeItem("token");
+        setUser(null);
+      }
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login - in production this would call your backend API
-    // For demo purposes, we'll create different users based on email
-    const mockUser: User = email.includes('coordinator') 
-      ? {
-          userId: '1',
-          name: 'Dr. Faculty Coordinator',
-          email,
-          role: 'coordinator',
-          clubs: [
-            { id: 'c1', name: 'Music Club', description: 'A club for music enthusiasts', imageUrl: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop' },
-            { id: 'c2', name: 'Drama Club', description: 'Theatrical performances and workshops', imageUrl: 'https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=400&h=400&fit=crop' },
-            { id: 'c3', name: 'Coding Club', description: 'Learn and practice programming', imageUrl: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=400&fit=crop' },
-          ],
-        }
-      : {
-          userId: '2',
-          name: 'Student Member',
-          email,
-          role: 'member',
-          clubs: [
-            { id: 'c1', name: 'Music Club', description: 'A club for music enthusiasts', imageUrl: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop' },
-            { id: 'c2', name: 'Drama Club', description: 'Theatrical performances and workshops', imageUrl: 'https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=400&h=400&fit=crop' },
-          ],
-        };
+    setIsLoading(true);
+    try {
+      const data = await apiLogin(email, password);
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        setUser(data.user);
+      } else {
+        throw new Error(data.error || "Login failed");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    setUser(mockUser);
+  const register = async (data: { name: string; email: string; password: string; role: UserRole }) => {
+    setIsLoading(true);
+    try {
+      const resData = await apiRegister(data);
+      if (resData.token && resData.user) {
+        localStorage.setItem("token", resData.token);
+        setUser(resData.user);
+      } else {
+        throw new Error(resData.error || "Registration failed");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -83,8 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 };

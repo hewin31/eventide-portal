@@ -35,11 +35,13 @@ const Profile = () => {
               </div>
               <div>
                 <label className="text-sm font-semibold">Clubs</label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {user?.clubs.map((club) => (
-                    <Badge key={club.id} variant="outline">{club.name}</Badge>
-                  ))}
-                </div>
+                {user?.clubs && user.clubs.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {user.clubs.map((club) => (
+                      <Badge key={club.id} variant="outline">{club.name}</Badge>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground mt-1">You are not a member of any clubs yet.</p>}
               </div>
             </CardContent>
           </Card>

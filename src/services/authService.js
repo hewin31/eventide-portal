@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../lib/utils";
 
 export async function login(email, password) {
-  const res = await fetch(`${API_BASE_URL}/api/login`, {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -10,7 +10,7 @@ export async function login(email, password) {
 }
 
 export async function register(data) {
-  const res = await fetch(`${API_BASE_URL}/api/register`, {
+  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
