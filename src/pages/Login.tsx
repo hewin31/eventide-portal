@@ -31,17 +31,17 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-gradient-to-br from-card via-card to-card/95 backdrop-blur-xl relative z-10">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden transition-colors duration-300">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none animate-pulse" />
+      <Card className="w-full max-w-md shadow-2xl bg-gradient-to-br from-card/90 via-card to-card/80 backdrop-blur-xl relative z-10 border-primary/10 animate-bounce-in">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center animate-float">
-            <div className="bg-gradient-to-br from-primary via-accent to-secondary p-4 rounded-full shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-110">
+            <div className="bg-gradient-to-br from-primary via-accent to-primary p-4 rounded-full shadow-xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-500 transform hover:scale-110 border-2 border-accent/20">
               <GraduationCap className="h-10 w-10 text-white drop-shadow-lg" />
             </div>
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent animate-fadeIn">
+            <CardTitle className="text-3xl font-bold font-poppins bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-fadeIn">
               Welcome to ClubHub
             </CardTitle>
             <CardDescription className="text-base mt-2 text-foreground/80 transition-colors duration-300">
@@ -52,7 +52,7 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2 animate-slideUp" style={{ animationDelay: '0.1s' }}>
-              <Label htmlFor="email" className="text-foreground/90 font-semibold transition-colors duration-300">
+              <Label htmlFor="email" className="text-foreground/90 font-semibold font-inter transition-colors duration-300">
                 Email Address
               </Label>
               <Input
@@ -62,11 +62,11 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="transition-all duration-300"
+                className="transition-all duration-300 font-inter"
               />
             </div>
             <div className="space-y-2 animate-slideUp" style={{ animationDelay: '0.2s' }}>
-              <Label htmlFor="password" className="text-foreground/90 font-semibold transition-colors duration-300">
+              <Label htmlFor="password" className="text-foreground/90 font-semibold font-inter transition-colors duration-300">
                 Password
               </Label>
               <Input
@@ -76,12 +76,12 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="transition-all duration-300"
+                className="transition-all duration-300 font-inter"
               />
             </div>
             <Button
               type="submit"
-              className="w-full h-12 text-lg font-semibold rounded-lg animate-slideUp"
+              className="w-full h-12 text-lg font-semibold rounded-lg animate-slideUp font-poppins transition-all duration-300"
               style={{ animationDelay: '0.3s' }}
               disabled={isLoading}
             >
@@ -97,7 +97,7 @@ const Login = () => {
                 </>
               )}
             </Button>
-            <div className="mt-6 text-center text-sm animate-slideUp" style={{ animationDelay: '0.4s' }}>
+            <div className="mt-6 text-center text-sm animate-slideUp font-inter" style={{ animationDelay: '0.4s' }}>
               <p className="text-foreground/70">
                 Don't have an account?{" "}
                 <Link
