@@ -19,46 +19,46 @@ export const Sidebar = ({ className }: SidebarProps) => {
   };
 
   return (
-    <aside className={cn("w-64 bg-card border-r border-border flex flex-col", className)}>
-      <div className="p-6 border-b border-border">
-        <div className="flex items-center justify-between mb-2">
+    <aside className={cn("w-64 bg-card/80 backdrop-blur-md border-r-2 border-primary/10 flex flex-col transition-all duration-300 hover:shadow-lg", className)}>
+      <div className="p-6 border-b-2 border-primary/10 transition-all duration-300">
+        <div className="flex items-center justify-between mb-2 animate-slideDown">
           <div className="flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <GraduationCap className="h-6 w-6 text-accent transition-transform duration-300 hover:scale-110" />
+            <h1 className="text-xl font-bold font-poppins bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
               ClubHub
             </h1>
           </div>
           <ThemeToggle />
         </div>
-        <p className="text-sm text-muted-foreground">{user?.name}</p>
-        <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+        <p className="text-sm text-foreground/80 transition-colors duration-300">{user?.name}</p>
+        <p className="text-xs text-muted-foreground capitalize transition-colors duration-300">{user?.role}</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
-        <Link to="/dashboard">
-          <Button variant="ghost" className="w-full justify-start">
-            <Home className="mr-2 h-4 w-4" />
+        <Link to="/dashboard" className="block transition-all duration-300">
+          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+            <Home className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
             My Clubs
           </Button>
         </Link>
-        <Link to="/events">
-          <Button variant="ghost" className="w-full justify-start">
-            <Calendar className="mr-2 h-4 w-4" />
+        <Link to="/events" className="block transition-all duration-300">
+          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+            <Calendar className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
             All Events
           </Button>
         </Link>
-        <Link to="/profile">
-          <Button variant="ghost" className="w-full justify-start">
-            <User className="mr-2 h-4 w-4" />
+        <Link to="/profile" className="block transition-all duration-300">
+          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+            <User className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
             Profile
           </Button>
         </Link>
       </nav>
 
-      <div className="p-4 border-t border-border">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+      <div className="p-4 border-t-2 border-primary/10 transition-all duration-300">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-300"
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
