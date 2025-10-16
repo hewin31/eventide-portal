@@ -31,16 +31,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
-            <div className="bg-gradient-to-br from-primary to-secondary p-4 rounded-2xl">
+            <div className="bg-gradient-to-br from-primary to-secondary p-4 rounded-full shadow-lg">
               <GraduationCap className="h-10 w-10 text-white" />
             </div>
           </div>
           <div>
-            <CardTitle className="text-3xl font-bold">Welcome to ClubHub</CardTitle>
+            <CardTitle className="text-3xl font-bold text-foreground">Welcome to ClubHub</CardTitle>
             <CardDescription className="text-base mt-2">
               Sign in to manage your college clubs
             </CardDescription>
@@ -70,7 +70,7 @@ const Login = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading}>
               {isLoading ? (
                 'Signing in...'
               ) : (
@@ -87,14 +87,7 @@ const Login = () => {
               </Link>
             </div>
           </form>
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium mb-2">Demo Credentials:</p>
-            <p className="text-xs text-muted-foreground">
-              Member: any email without "coordinator"<br />
-              Coordinator: include "coordinator" in email<br />
-              Password: any password
-            </p>
-          </div>
+          
         </CardContent>
       </Card>
     </div>

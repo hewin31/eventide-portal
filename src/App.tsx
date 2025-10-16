@@ -10,6 +10,9 @@ import Register from "./pages/Register"; // <- import Register page
 import Dashboard from "./pages/Dashboard";
 import ClubWorkspace from "./pages/ClubWorkspace";
 import CreateEvent from "./pages/CreateEvent";
+import EditClub from "./pages/EditClub";
+import AllEvents from "./pages/AllEvents";
+import EditEvent from "./pages/EditEvent";
 import EventManagement from "./pages/EventManagement";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -41,6 +44,14 @@ const App = () => (
               }
             />
             <Route
+              path="/events"
+              element={
+                <ProtectedRoute>
+                  <AllEvents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/club/:clubId"
               element={
                 <ProtectedRoute>
@@ -53,6 +64,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CreateEvent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/club/:clubId/edit"
+              element={
+                <ProtectedRoute>
+                  <EditClub />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/club/:clubId/event/:eventId/edit"
+              element={
+                <ProtectedRoute>
+                  <EditEvent />
                 </ProtectedRoute>
               }
             />
