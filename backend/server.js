@@ -11,20 +11,15 @@ const attendanceRoutes = require('./routes/attendanceRoutes'); // Ensure this is
 const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
-<<<<<<< HEAD
-
+app.use(cors());
 const corsOptions = {
   origin: ['http://localhost:8080', 'http://localhost:8081'],
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
-=======
-app.use(cors());
 app.use(express.json({ limit: '10mb' })); // increase JSON body limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // increase form body limit
->>>>>>> 18ddb780d8a26332c2d1d9c891561f1b64a4a1b2
 
 // Test route
 app.get('/', (req, res) => res.send('API is running'));
