@@ -11,16 +11,16 @@ interface ClubCardProps {
 
 export const ClubCard = ({ club, onOpen }: ClubCardProps) => {
   return (
-    <Card className="overflow-hidden transition-all duration-500 cursor-pointer group border-0 bg-card shadow-lg hover:shadow-primary/20 hover:-translate-y-2" onClick={() => onOpen(club.id)}>
+    <Card className="overflow-hidden transition-all duration-300 cursor-pointer group border-0 bg-card shadow-lg hover:shadow-primary/30 hover:-translate-y-2" onClick={() => onOpen(club.id)}>
       <div className="relative h-48 overflow-hidden">
         {club.imageUrl ? (
           <img 
             src={`${API_BASE_URL}/api/images/${club.imageUrl}`} 
             alt={club.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
             <Users className="h-20 w-20 text-primary opacity-50" />
           </div>
         )}
@@ -35,7 +35,7 @@ export const ClubCard = ({ club, onOpen }: ClubCardProps) => {
         <p className="text-muted-foreground line-clamp-2 min-h-[3rem]">
           {club.description || 'Club description goes here'}
         </p>
-        <Button className="w-full group-hover:shadow-lg group-hover:shadow-primary/30 transition-all duration-300">
+        <Button className="w-full group-hover:shadow-lg group-hover:shadow-primary/40 transition-all duration-300 bg-gradient-to-r from-primary to-secondary text-white">
           Open Workspace
           <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
         </Button>

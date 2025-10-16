@@ -138,7 +138,7 @@ router.get('/club/:clubId', authenticateToken, async (req, res) => {
 // @route   GET /api/events
 // @desc    Get all approved events from all clubs
 // @access  Private (students only)
-router.get('/', authenticateToken, authorizeRoles('student'), async (req, res) => {
+router.get('/', authenticateToken, authorizeRoles('student','coordinator','member'), async (req, res) => {
   try {
     const events = await Event.find({ status: 'approved' })
       .populate('club', 'name')
