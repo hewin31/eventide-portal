@@ -6,6 +6,8 @@
 All colors MUST be HSL.
 */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap');
+
 @layer base {
   :root {
     --background: 210 20% 98%;
@@ -43,15 +45,15 @@ All colors MUST be HSL.
     --ring: 220 90% 56%;
 
     --radius: 0.75rem;
-    
+
     --gradient-primary: linear-gradient(135deg, hsl(220 90% 56%), hsl(270 70% 60%));
     --gradient-subtle: linear-gradient(180deg, hsl(210 20% 98%), hsl(0 0% 100%));
     --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(210 30% 99%));
-    
+
     --shadow-sm: 0 2px 8px hsl(220 90% 56% / 0.08);
     --shadow-md: 0 4px 16px hsl(220 90% 56% / 0.12);
     --shadow-lg: 0 8px 32px hsl(220 90% 56% / 0.16);
-    
+
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
@@ -72,29 +74,29 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 0 0% 8%;
-    --foreground: 270 10% 95%;
+    --background: 220 29% 6%;
+    --foreground: 210 40% 98%;
 
-    --card: 270 20% 15%;
-    --card-foreground: 270 10% 95%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 270 20% 15%;
-    --popover-foreground: 270 10% 95%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 280 85% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 228 96% 63%;
+    --primary-foreground: 220 29% 6%;
 
-    --secondary: 270 70% 45%;
+    --secondary: 210 40% 60%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 270 15% 25%;
-    --muted-foreground: 270 10% 70%;
+    --muted: 220 20% 25%;
+    --muted-foreground: 210 15% 70%;
 
-    --accent: 280 90% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 188 100% 60%;
+    --accent-foreground: 220 29% 6%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 270 10% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
@@ -102,17 +104,17 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 270 20% 20%;
-    --input: 270 15% 20%;
-    --ring: 280 85% 50%;
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 270 10% 95%;
-    --sidebar-primary: 280 85% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 20% 25%;
-    --sidebar-accent-foreground: 270 10% 95%;
-    --sidebar-border: 270 20% 20%;
-    --sidebar-ring: 280 85% 50%;
+    --border: 220 20% 20%;
+    --input: 220 15% 18%;
+    --ring: 228 96% 63%;
+    --sidebar-background: 220 29% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 228 96% 63%;
+    --sidebar-primary-foreground: 220 29% 6%;
+    --sidebar-accent: 188 100% 60%;
+    --sidebar-accent-foreground: 220 29% 6%;
+    --sidebar-border: 220 20% 20%;
+    --sidebar-ring: 228 96% 63%;
   }
 }
 
