@@ -9,7 +9,13 @@ const eventRoutes = require('./routes/eventRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: ['http://localhost:8080', 'http://localhost:8081'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Test route
