@@ -35,6 +35,19 @@ const Register = () => {
   };
 
   return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden transition-colors duration-300">
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-primary/10 pointer-events-none animate-pulse" />
+      <Card className="w-full max-w-md shadow-2xl bg-gradient-to-br from-card/90 via-card to-card/80 backdrop-blur-xl relative z-10 border-primary/10 animate-bounce-in">
+        <CardHeader className="text-center space-y-3">
+          <div className="flex justify-center">
+            <div className="bg-gradient-to-br from-accent via-primary to-accent p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary/20">
+              <UserPlus className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <div className="animate-slideDown">
+            <CardTitle className="text-3xl font-bold font-poppins text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-clip-text">Create an Account</CardTitle>
+            <CardDescription className="text-base mt-2 text-foreground/80">Register to manage your college clubs</CardDescription>
+          </div>
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
         <CardHeader className="text-center">
@@ -43,26 +56,32 @@ const Register = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <div className="animate-slideUp" style={{ animationDelay: '0.1s' }}>
+              <Label htmlFor="name" className="font-inter font-semibold">Full Name</Label>
+              <Input id="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required className="font-inter" />
             </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <div className="animate-slideUp" style={{ animationDelay: '0.2s' }}>
+              <Label htmlFor="email" className="font-inter font-semibold">Email Address</Label>
+              <Input id="email" type="email" placeholder="you@college.edu" value={email} onChange={(e) => setEmail(e.target.value)} required className="font-inter" />
             </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div className="animate-slideUp" style={{ animationDelay: '0.3s' }}>
+              <Label htmlFor="password" className="font-inter font-semibold">Password</Label>
+              <Input id="password" type="password" placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} required className="font-inter" />
             </div>
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <select id="role" value={role} onChange={(e) => setRole(e.target.value as UserRole)} className="w-full p-2.5 border rounded-md bg-transparent">
+            <div className="animate-slideUp" style={{ animationDelay: '0.4s' }}>
+              <Label htmlFor="role" className="font-inter font-semibold">Role</Label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full h-10 px-3 py-2 border-2 border-input bg-input text-foreground rounded-lg transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent focus:shadow-xl focus:shadow-accent/30 hover:border-muted font-inter"
+              >
                 <option value="student">Student</option>
                 <option value="member">Member</option>
                 <option value="coordinator">Coordinator</option>
               </select>
             </div>
+            <Button type="submit" className="w-full h-12 text-lg font-poppins font-semibold animate-slideUp transition-all duration-300" style={{ animationDelay: '0.5s' }} disabled={isLoading}>
             <Button type="submit" className="w-full h-12 text-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg hover:shadow-primary/30 transition-all duration-300" disabled={isLoading}>
               {isLoading ? "Registering..." : <><UserPlus className="mr-2 h-4 w-4" /> Register</>}
             </Button>

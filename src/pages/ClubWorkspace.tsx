@@ -95,35 +95,35 @@ const ClubWorkspace = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full bg-background transition-colors duration-300">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 transition-all duration-300">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-6 hover:bg-primary/10">
+          <div className="mb-8 animate-slideInRight">
+            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-6 hover:bg-primary/10 transition-all duration-300 font-inter">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Clubs
             </Button>
-            <div className="mb-6">
+            <div className="mb-6 animate-slideUp">
               {club.imageUrl ? (
-                <div className="relative h-48 rounded-2xl overflow-hidden">
-                  <img 
+                <div className="relative h-48 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-primary/30 transition-all duration-500 group">
+                  <img
                     src={`${API_BASE_URL}/api/images/${club.imageUrl}`}
                     alt={club.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                   <div className="absolute bottom-6 left-6">
-                    <h1 className="text-5xl font-bold text-white drop-shadow-2xl">{club.name}</h1>
+                    <h1 className="text-5xl font-bold font-poppins text-white drop-shadow-2xl transition-all duration-300 group-hover:translate-y-[-4px]">{club.name}</h1>
                   </div>
                 </div>
               ) : (
-                <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                <h1 className="text-5xl font-bold font-poppins mb-3 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
                   {club.name}
                 </h1>
               )}
             </div>
-            <p className="text-muted-foreground text-lg">{club.description}</p>
+            <p className="text-muted-foreground text-lg transition-colors duration-300 font-inter animate-slideUp" style={{ animationDelay: '0.1s' }}>{club.description}</p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
