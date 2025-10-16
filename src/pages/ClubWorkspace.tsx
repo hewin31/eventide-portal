@@ -127,7 +127,7 @@ const ClubWorkspace = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted p-1 h-12">
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted p-1 h-12 rounded-full">
               <TabsTrigger value="events" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-secondary data-[state=active]:text-white">
                 <Calendar className="mr-2 h-4 w-4" />
                 Events
@@ -154,15 +154,15 @@ const ClubWorkspace = () => {
 
               <div className="grid gap-6">
                 {eventsLoading && <p>Loading events...</p>}
-                {events && events.length > 0 && events.map((event: any) => (
-                  <Card key={event._id} className="overflow-hidden hover:shadow-2xl transition-all duration-500 group border-0 bg-gradient-to-br from-card via-card to-card/80">
+                {events && events.length > 0 && events.map((event: any, index: number) => (
+                  <Card key={event._id} className="overflow-hidden hover:shadow-2xl transition-all duration-300 group border-0 bg-card" style={{ animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both` }}>
                     <div className="flex flex-col md:flex-row">
-                      <div className="relative md:w-64 h-48 md:h-auto overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20">
+                      <div className="relative md:w-64 h-48 md:h-auto overflow-hidden">
                         {event.posterImage ? (
                           <img 
                             src={`${API_BASE_URL}/api/images/${event.posterImage}`}
                             alt={event.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">

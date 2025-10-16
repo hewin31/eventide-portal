@@ -48,6 +48,11 @@ const Register = () => {
             <CardTitle className="text-3xl font-bold font-poppins text-transparent bg-gradient-to-r from-primary via-accent to-primary bg-clip-text">Create an Account</CardTitle>
             <CardDescription className="text-base mt-2 text-foreground/80">Register to manage your college clubs</CardDescription>
           </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-foreground">Create an Account</CardTitle>
+          <CardDescription className="text-base mt-2">Register to manage your college clubs</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,6 +82,7 @@ const Register = () => {
               </select>
             </div>
             <Button type="submit" className="w-full h-12 text-lg font-poppins font-semibold animate-slideUp transition-all duration-300" style={{ animationDelay: '0.5s' }} disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg hover:shadow-primary/30 transition-all duration-300" disabled={isLoading}>
               {isLoading ? "Registering..." : <><UserPlus className="mr-2 h-4 w-4" /> Register</>}
             </Button>
           </form>

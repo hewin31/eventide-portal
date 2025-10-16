@@ -38,6 +38,12 @@ const Login = () => {
           <div className="flex justify-center animate-float">
             <div className="bg-gradient-to-br from-primary via-accent to-primary p-4 rounded-full shadow-xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-500 transform hover:scale-110 border-2 border-accent/20">
               <GraduationCap className="h-10 w-10 text-white drop-shadow-lg" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center animate-pulse">
+            <div className="bg-gradient-to-br from-primary to-secondary p-4 rounded-full shadow-lg">
+              <GraduationCap className="h-10 w-10 text-white" />
             </div>
           </div>
           <div className="space-y-2">
@@ -85,6 +91,7 @@ const Login = () => {
               style={{ animationDelay: '0.3s' }}
               disabled={isLoading}
             >
+            <Button type="submit" className="w-full h-12 text-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg hover:shadow-primary/30 transition-all duration-300" disabled={isLoading}>
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin">⏳</span>
