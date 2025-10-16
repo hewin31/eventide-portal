@@ -13,6 +13,17 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        poppins: ['Poppins', 'sans-serif'],
+        inter: ['Inter', 'sans-serif'],
+      },
+      backdropBlur: {
+        xs: '2px',
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '10px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
