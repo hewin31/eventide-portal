@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, FileText, Users, QrCode, CheckSquare } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/utils';
 
 async function fetchEventDetails(eventId: string, token: string | null) {
@@ -37,6 +38,7 @@ const EventManagement = () => {
   const { user } = useAuth();
   const token = localStorage.getItem('token');
   const [activeTab, setActiveTab] = useState('details');
+  const queryClient = useQueryClient();
   const [showQRScanner, setShowQRScanner] = useState(false);
 
   const isCoordinator = user?.role === 'coordinator';
@@ -52,6 +54,52 @@ const EventManagement = () => {
     queryFn: () => fetchEventRegistrations(eventId!, token),
     enabled: !!eventId && !!token,
   });
+
+  const toggleAttendanceMutation = useMutation({
+    mutationFn: (attendanceId: string) => {
+      return fetch(`${API_BASE_URL}/api/attendance/${attendanceId}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Attendance status updated.');
+      await queryClient.invalidateQueries({ queryKey: ['eventRegistrations', eventId] });
+    },
+    onError: () => {
+      toast.error('Failed to update attendance.');
+    },
+  });
+
+  const handleToggleAttendance = (attendanceId: string) => {
+    toggleAttendanceMutation.mutate(attendanceId);
+  };
+
+  const updateOdStatusMutation = useMutation({
+    mutationFn: ({ attendanceId, odStatus }: { attendanceId: string; odStatus: 'approved' | 'rejected' }) => {
+      return fetch(`${API_BASE_URL}/api/attendance/${attendanceId}/od`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ odStatus }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success('OD status updated successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['eventRegistrations', eventId] });
+    },
+    onError: () => {
+      toast.error('Failed to update OD status.');
+    },
+  });
+
+  const handleOdApproval = (attendanceId: string, status: 'approved' | 'rejected') => {
+    updateOdStatusMutation.mutate({ attendanceId, odStatus: status });
+  };
 
   if (isLoadingEvent) {
     return <div className="flex min-h-screen items-center justify-center">Loading Event...</div>;
@@ -161,11 +209,11 @@ const EventManagement = () => {
                     </TableHeader>
                     <TableBody>
                       {isLoadingRegistrations && <TableRow><TableCell colSpan={3}>Loading...</TableCell></TableRow>}
-                      {registrationData?.registeredStudents?.map((student: any) => (
-                        <TableRow key={student._id}>
-                          <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell>{student.email}</TableCell>
-                          <TableCell>{new Date(student.createdAt).toLocaleDateString()}</TableCell>
+                      {registrationData?.attendance?.map((att: any) => (
+                        <TableRow key={att._id}>
+                          <TableCell className="font-medium">{att.student.name}</TableCell>
+                          <TableCell>{att.student.email}</TableCell>
+                          <TableCell>{new Date(att.createdAt).toLocaleDateString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -217,12 +265,22 @@ const EventManagement = () => {
                           </TableCell>
                           <TableCell>{att.timestamp ? new Date(att.timestamp).toLocaleTimeString() : '-'}</TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleToggleAttendance(att._id)}
+                              disabled={toggleAttendanceMutation.isPending}
+                            >
                               Toggle
                             </Button>
                           </TableCell>
                         </TableRow>
                       ))}
+                      {!isLoadingRegistrations && registrationData?.attendance?.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">No students registered for this event yet.</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -251,7 +309,7 @@ const EventManagement = () => {
                     </TableHeader>
                     <TableBody>
                       {isLoadingRegistrations && <TableRow><TableCell colSpan={isCoordinator ? 4 : 3}>Loading...</TableCell></TableRow>}
-                      {registrationData?.attendance?.filter((att: any) => att.odStatus).map((req: any) => (
+                      {registrationData?.attendance?.filter((att: any) => att.odStatus !== 'not_applicable').map((req: any) => (
                         <TableRow key={req._id}>
                           <TableCell className="font-medium">{req.student.name}</TableCell>
                           <TableCell>Participated in event</TableCell>
@@ -270,8 +328,22 @@ const EventManagement = () => {
                             <TableCell>
                               {req.odStatus === 'pending' && (
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="default">Approve</Button>
-                                  <Button size="sm" variant="destructive">Reject</Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="default"
+                                    onClick={() => handleOdApproval(req._id, 'approved')}
+                                    disabled={updateOdStatusMutation.isPending}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    onClick={() => handleOdApproval(req._id, 'rejected')}
+                                    disabled={updateOdStatusMutation.isPending}
+                                  >
+                                    Reject
+                                  </Button>
                                 </div>
                               )}
                             </TableCell>

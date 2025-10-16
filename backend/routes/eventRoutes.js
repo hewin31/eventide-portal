@@ -61,12 +61,27 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), as
 router.post('/:id/register', authenticateToken, authorizeRoles('student'), async (req, res) => {
   try {
     const studentId = req.user.id; // Use authenticated user's ID for security
+    const eventId = req.params.id;
+
     const event = await Event.findByIdAndUpdate(
-      req.params.id,
+      eventId,
       { $addToSet: { registeredStudents: studentId } }, // $addToSet prevents duplicates
       { new: true }
     );
     if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Also, create an attendance record for the student for this event
+    const existingAttendance = await Attendance.findOne({ event: eventId, student: studentId });
+    if (!existingAttendance) {
+      const newAttendance = new Attendance({
+        event: eventId, 
+        student: studentId,
+        // Check the event flag to set OD status
+        odStatus: event.requireODApproval ? 'pending' : 'not_applicable'
+      });
+      await newAttendance.save();
+    }
+
     res.json({ message: 'Student registered for event', event });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -78,7 +93,10 @@ router.get('/:id/registrations', authenticateToken, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('registeredStudents', 'name email role');
     if (!event) return res.status(404).json({ error: 'Event not found' });
-    const attendance = await Attendance.find({ event: req.params.id }).populate('student', 'name email role present odStatus');
+    
+    // Fetch all attendance records for the event and populate the student details
+    const attendance = await Attendance.find({ event: req.params.id }).populate('student', 'name email');
+
     res.json({ registeredStudents: event.registeredStudents, attendance });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -110,7 +128,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // @access  Private
 router.get('/club/:clubId', authenticateToken, async (req, res) => {
   try {
-    const events = await Event.find({ club: req.params.clubId }).sort({ date: -1 });
+    const events = await Event.find({ club: req.params.clubId }).sort({ startDateTime: -1 });
     res.json(events);
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -185,7 +185,7 @@ const ClubWorkspace = () => {
                           <CardDescription className="mt-3 flex flex-wrap items-center gap-4 text-base">
                             <span className="flex items-center gap-2">
                               <Calendar className="h-4 w-4" />
-                              {new Date(event.date).toLocaleDateString('en-US', { 
+                              {new Date(event.startDateTime).toLocaleDateString('en-US', { 
                                 weekday: 'short', 
                                 year: 'numeric', 
                                 month: 'short', 
@@ -193,7 +193,7 @@ const ClubWorkspace = () => {
                               })}
                             </span>
                             <span>•</span>
-                            <span>{event.time}</span>
+                            <span>{new Date(event.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             <span>•</span>
                             <span className="flex items-center gap-2">
                               <Users className="h-4 w-4" />

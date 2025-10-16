@@ -655,46 +655,6 @@ const EditEvent = () => {
               </AccordionContent>
             </AccordionItem>
 
-            {/* 7. Attendance & OD */}
-            <AccordionItem value="management" className="border rounded-lg bg-card">
-              <AccordionTrigger className="px-6 hover:no-underline">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-lg font-semibold">Attendance & OD Management</h3>
-                    <p className="text-sm text-muted-foreground">Tracking and approval settings</p>
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-6 pb-6">
-                <div className="space-y-4 pt-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <div>
-                      <Label htmlFor="enableAttendance" className="text-base font-medium">Enable Attendance Tracking</Label>
-                      <p className="text-sm text-muted-foreground mt-1">Allow QR-based attendance marking</p>
-                    </div>
-                    <Switch 
-                      id="enableAttendance"
-                      checked={eventData.enableAttendance}
-                      onCheckedChange={(checked) => setEventData({...eventData, enableAttendance: checked})}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <div>
-                      <Label htmlFor="requireODApproval" className="text-base font-medium">Require OD Approval</Label>
-                      <p className="text-sm text-muted-foreground mt-1">Enable coordinator approval workflow</p>
-                    </div>
-                    <Switch 
-                      id="requireODApproval"
-                      checked={eventData.requireODApproval}
-                      onCheckedChange={(checked) => setEventData({...eventData, requireODApproval: checked})}
-                    />
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
 
           {/* Bottom Actions */}

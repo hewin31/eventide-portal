@@ -7,7 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const clubRoutes = require('./routes/clubRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const userRoutes = require('./routes/userRoutes');
-const attendanceRoutes = require('./routes/attendanceRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes'); // Ensure this is present
 const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();

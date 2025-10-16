@@ -66,7 +66,7 @@ export function ManageMembers({ open, onOpenChange, clubName, clubId, currentMem
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const users = await res.json();
-      setSearchResults(users.map((u: any) => ({ ...u, id: u._id })));
+      setSearchResults(users);
     } else {
       setSearchResults([]);
     }
@@ -85,7 +85,7 @@ export function ManageMembers({ open, onOpenChange, clubName, clubId, currentMem
     const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/members`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ userId: selectedUser.id })
+      body: JSON.stringify({ userId: selectedUser._id })
     });
 
     if (!res.ok) {
