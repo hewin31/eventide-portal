@@ -11,9 +11,24 @@ const attendanceRoutes = require('./routes/attendanceRoutes'); // Ensure this is
 const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' })); // increase JSON body limit
-app.use(express.urlencoded({ extended: true, limit: '10mb' })); // increase form body limit
+
+// --- CORS Configuration ---
+const allowedOrigins = [
+  'http://localhost:8080', // Admin Portal (Vite default)
+  'http://localhost:8081', // Student Portal (Next available Vite port)
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+
+
+
+app.use(express.json({ limit: '10mb' })); // default is 100kb
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Test route
 app.get('/', (req, res) => res.send('API is running'));

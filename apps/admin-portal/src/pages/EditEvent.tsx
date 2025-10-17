@@ -52,6 +52,7 @@ const EditEvent = () => {
     registrationLink: '',
     enableAttendance: false,
     requireODApproval: false,
+    status: 'pending',
     themeColor: '#3b82f6',
   });
 
@@ -88,7 +89,7 @@ const EditEvent = () => {
           endDateTime: formatDateTimeForInput(data.endDateTime),
           registrationDeadline: formatDateTimeForInput(data.registrationDeadline),
         });
-        setContactPersons(data.contactPersons.map((cp: any) => ({...cp, id: cp._id})));
+        setContactPersons(data.contactPersons?.map((cp: any) => ({...cp, id: cp._id})) || []);
         if (data.posterImage) {
           setPosterImageId(data.posterImage);
           setPosterPreview(`${API_BASE_URL}/api/images/${data.posterImage}`);
@@ -144,45 +145,81 @@ const EditEvent = () => {
     setContactPersons(contactPersons.map(cp => cp.id === id ? { ...cp, [field]: value } : cp));
   };
 
-  const handleUpdate = async () => {
-    setIsLoading(true);
-    if (!eventData.name || !eventData.description) {
-      toast({ title: "Missing Required Fields", description: "Please fill in the event name and description.", variant: "destructive" });
-      setIsLoading(false);
-      return;
-    }
+const handleUpdate = async () => {
+  setIsLoading(true);
 
-    const payload = {
-      ...eventData,
-      posterImage: posterImageId,
-      qrCodeImage: qrCodeImageId,
-      clubId,
-      contactPersons,
-    };
+  // Required fields check
+  if (!eventData.name || !eventData.description || !eventData.startDateTime || !eventData.endDateTime || !eventData.eventType || !eventData.eventCategory || !eventData.venue || !eventData.mode) {
+    toast({
+      title: "Missing Required Fields",
+      description: "Please fill in all mandatory fields (Name, Description, Type, Category, Venue, Mode, Dates).",
+      variant: "destructive",
+    });
+    setIsLoading(false);
+    return;
+  }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to update event');
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ['events', clubId] });
-      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-
-      toast({ title: "Event Updated!", description: "Your event has been successfully updated." });
-      navigate(`/club/${clubId}/event/${eventId}`);
-    } catch (error) {
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
+  // Prepare payload for backend
+  const payload = {
+    name: eventData.name,
+    description: eventData.description,
+    eventType: eventData.eventType,
+    eventCategory: eventData.eventCategory,
+    startDateTime: new Date(eventData.startDateTime),
+    endDateTime: new Date(eventData.endDateTime),
+    registrationDeadline: eventData.registrationDeadline ? new Date(eventData.registrationDeadline) : null,
+    venue: eventData.venue,
+    mode: eventData.mode,
+    requiresFee: eventData.requiresFee,
+    feeAmount: eventData.requiresFee ? Number(eventData.feeAmount) : 0,
+    maxParticipants: Number(eventData.maxParticipants) || 0,
+    totalSeats: Number(eventData.totalSeats) || 0,
+    eligibility: eventData.eligibility || "",
+    registrationLink: eventData.registrationLink || "",
+    enableAttendance: eventData.enableAttendance || false,
+    requireODApproval: eventData.requireODApproval || false,
+    themeColor: eventData.themeColor,
+    posterImage: posterImageId,
+    qrCodeImage: qrCodeImageId,
+    contactPersons: contactPersons.map(({ name, phone, designation, whatsappLink }) => ({
+      name, phone, designation, whatsappLink
+    })),
   };
+
+  console.log("Updating event with payload:", payload); // Debugging
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Backend Error:", errorData);
+      throw new Error(errorData.error || JSON.stringify(errorData));
+    }
+
+    // Invalidate cache
+    await queryClient.invalidateQueries({ queryKey: ["events", clubId] });
+    await queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+
+    toast({
+      title: "Event Updated!",
+      description: "Your event has been successfully updated.",
+    });
+    navigate(`/club/${clubId}/event/${eventId}`);
+  } catch (error) {
+    toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   if (isFetching) {
     return <div className="flex min-h-screen items-center justify-center">Loading event for editing...</div>;
@@ -511,6 +548,17 @@ const EditEvent = () => {
                       onChange={(e) => setEventData({...eventData, registrationLink: e.target.value})}
                       placeholder="https://forms.google.com/..."
                       className="mt-1.5"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 col-span-2">
+                    <div>
+                      <Label htmlFor="requireODApproval" className="text-base font-medium">Require OD Approval?</Label>
+                      <p className="text-sm text-muted-foreground mt-1">If enabled, participants can request On-Duty status.</p>
+                    </div>
+                    <Switch 
+                      id="requireODApproval"
+                      checked={eventData.requireODApproval}
+                      onCheckedChange={(checked) => setEventData({...eventData, requireODApproval: checked})}
                     />
                   </div>
                 </div>

@@ -100,6 +100,14 @@ router.post('/:id/members', authenticateToken, authorizeRoles('coordinator'), as
     // Add club to user's clubs list
     await User.findByIdAndUpdate(userId, { $addToSet: { clubs: clubId } });
 
+    // If the user is a 'student', upgrade their role to 'member'
+    const user = await User.findById(userId);
+    if (user && user.role === 'student') {
+      user.role = 'member';
+      await user.save();
+      console.log(`User ${userId} role updated to 'member'`);
+    }
+
     if (!club) return res.status(404).json({ msg: 'Club not found' });
 
     res.json(club.members);

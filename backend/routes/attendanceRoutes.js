@@ -19,11 +19,16 @@ router.post('/', async (req, res) => {
 // @access  Private (Member or Coordinator)
 router.patch('/:id/toggle', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
   try {
-    const attendanceRecord = await Attendance.findById(req.params.id);
+    let attendanceRecord = await Attendance.findById(req.params.id);
     if (!attendanceRecord) return res.status(404).json({ error: 'Attendance record not found' });
-    attendanceRecord.present = !attendanceRecord.present;
-    await attendanceRecord.save();
-    res.json(attendanceRecord);
+
+    // Toggle the present status and explicitly update the timestamp
+    const updatedRecord = await Attendance.findByIdAndUpdate(
+      req.params.id,
+      { present: !attendanceRecord.present, updatedAt: new Date() },
+      { new: true }
+    );
+    res.json(updatedRecord);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
