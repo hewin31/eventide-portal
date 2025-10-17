@@ -12,12 +12,6 @@ const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 app.use(cors());
-const corsOptions = {
-  origin: ['http://localhost:8080', 'http://localhost:8081'],
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // increase JSON body limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // increase form body limit
 

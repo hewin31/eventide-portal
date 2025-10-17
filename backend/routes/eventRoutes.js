@@ -103,6 +103,40 @@ router.get('/:id/registrations', authenticateToken, async (req, res) => {
   }
 });
 
+// @route   GET /api/events/public
+// @desc    Get all approved events for public/guest view
+// @access  Public
+router.get('/public', async (req, res) => {
+  try {
+    const events = await Event.find({ status: 'approved' })
+      .populate('club', 'name')
+      .sort({ startDateTime: -1 });
+    res.json(events);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
+
+// @route   GET /api/events/my-events
+// @desc    Get all events the current student is registered for
+// @access  Private (Student only)
+router.get('/my-events', authenticateToken, authorizeRoles('student'), async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // Find all events where the student is registered
+    const events = await Event.find({ registeredStudents: studentId })
+      .populate('club', 'name') // Include club name
+      .sort({ startDateTime: -1 }); // Show latest events first
+
+    res.json(events);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
+
 // @route   GET /api/events/:id
 // @desc    Get a single event by ID
 // @access  Private
