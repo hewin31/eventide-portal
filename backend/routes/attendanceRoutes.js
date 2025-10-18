@@ -52,4 +52,25 @@ router.patch('/:id/od', authenticateToken, authorizeRoles('coordinator'), async 
   }
 });
 
+// @route   GET /api/attendance/my-od-requests
+// @desc    Get all OD requests for the current student
+// @access  Private (Student only)
+router.get('/my-od-requests', authenticateToken, authorizeRoles('student'), async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const odRequests = await Attendance.find({ student: studentId })
+      .populate({
+        path: 'event',
+        select: 'name startDateTime' // Select only the fields needed by the frontend
+      })
+      .sort({ createdAt: -1 }); // Show the most recent requests first
+
+    res.json(odRequests);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
+
 module.exports = router;
