@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Calendar, Plus, Users, Info, Edit } from 'lucide-react';
+import { ArrowLeft, Calendar, Plus, Users, Info, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ManageMembers } from '@/components/ManageMembers';
 import { API_BASE_URL } from '@/lib/utils';
@@ -56,8 +56,8 @@ const ClubWorkspace = () => {
   });
 
   const updateEventStatusMutation = useMutation({
-    mutationFn: ({ eventId, status }: { eventId: string; status: 'approved' | 'rejected' }) => {
-      return fetch(`${API_BASE_URL}/api/events/${eventId}/status`, {
+    mutationFn: async ({ eventId, status }: { eventId: string; status: 'approved' | 'rejected' }) => {
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -65,6 +65,13 @@ const ClubWorkspace = () => {
         },
         body: JSON.stringify({ status }),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'An unknown error occurred' }));
+        throw new Error(errorData.error || 'Failed to update event status');
+      }
+
+      return res.json();
     },
     onSuccess: () => {
       toast.success('Event status updated!');
@@ -72,6 +79,30 @@ const ClubWorkspace = () => {
     },
     onError: () => {
       toast.error('Failed to update event status.');
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'An unknown error occurred' }));
+        throw new Error(errorData.error || 'Failed to delete event');
+      }
+      // No JSON body is expected on a successful DELETE, so we don't return res.json()
+    },
+    onSuccess: () => {
+      toast.success('Event deleted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['events', clubId] });
+    },
+    onError: () => {
+      toast.error('Failed to delete event.');
     },
   });
 
@@ -89,10 +120,6 @@ const ClubWorkspace = () => {
       </div>
     );
   }
-
-  const handleManageEvent = (eventId: string) => {
-    navigate(`/club/${clubId}/event/${eventId}`);
-  };
 
   return (
     <div className="flex min-h-screen w-full bg-background transition-colors duration-300">
@@ -179,7 +206,10 @@ const ClubWorkspace = () => {
                       </div>
                       <div className="flex-1 flex flex-col">
                         <CardHeader className="flex-1">
-                          <CardTitle className="text-2xl group-hover:text-primary transition-colors">
+                          <CardTitle 
+                            className="text-2xl group-hover:text-primary transition-colors cursor-pointer"
+                            onClick={() => navigate(`/club/${clubId}/event/${event._id}`)}
+                          >
                             {event.name}
                           </CardTitle>
                           <CardDescription className="mt-3 flex flex-wrap items-center gap-4 text-base">
@@ -202,13 +232,28 @@ const ClubWorkspace = () => {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-0 flex items-center gap-4">
-                          <Button 
-                            onClick={() => handleManageEvent(event._id)}
-                            className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
-                          >
-                            Manage Event
-                            <ArrowLeft className="ml-2 h-4 w-4 rotate-180 group-hover:translate-x-1 transition-transform" />
-                          </Button>
+                          {/* Only show Manage/Delete buttons to the event creator or the club coordinator */}
+                          {(user?._id === event.createdBy || user?._id === club.coordinator?._id) ? (
+                            <>
+                              <Button 
+                                onClick={() => navigate(`/club/${clubId}/event/${event._id}/edit`)}
+                                className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Event
+                              </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => deleteEventMutation.mutate(event._id)}
+                              disabled={deleteEventMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            </>
+                          ) : (
+                            <Button onClick={() => navigate(`/club/${clubId}/event/${event._id}`)}>View Details</Button>
+                          )}
                           {user?.role === 'coordinator' && event.status === 'pending' && (
                             <>
                               <Button 

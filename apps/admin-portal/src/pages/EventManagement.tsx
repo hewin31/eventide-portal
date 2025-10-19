@@ -213,7 +213,7 @@ const EventManagement = () => {
                         <TableRow key={att._id}>
                           <TableCell className="font-medium">{att.student.name}</TableCell>
                           <TableCell>{att.student.email}</TableCell>
-                          <TableCell>{new Date(att.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(att.createdAt).toLocaleString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -263,7 +263,9 @@ const EventManagement = () => {
                               {att.present ? 'Present' : 'Absent'}
                             </Badge>
                           </TableCell>
-                          <TableCell>{att.timestamp ? new Date(att.timestamp).toLocaleTimeString() : '-'}</TableCell>
+                          <TableCell>
+                            {att.createdAt !== att.updatedAt ? new Date(att.updatedAt).toLocaleString() : '-'}
+                          </TableCell>
                           <TableCell>
                             <Button 
                               variant="outline" 
@@ -355,6 +357,7 @@ const EventManagement = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
           </Tabs>
         </div>
       </main>

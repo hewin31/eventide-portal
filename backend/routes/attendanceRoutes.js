@@ -19,11 +19,16 @@ router.post('/', async (req, res) => {
 // @access  Private (Member or Coordinator)
 router.patch('/:id/toggle', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
   try {
-    const attendanceRecord = await Attendance.findById(req.params.id);
+    let attendanceRecord = await Attendance.findById(req.params.id);
     if (!attendanceRecord) return res.status(404).json({ error: 'Attendance record not found' });
-    attendanceRecord.present = !attendanceRecord.present;
-    await attendanceRecord.save();
-    res.json(attendanceRecord);
+
+    // Toggle the present status and explicitly update the timestamp
+    const updatedRecord = await Attendance.findByIdAndUpdate(
+      req.params.id,
+      { present: !attendanceRecord.present, updatedAt: new Date() },
+      { new: true }
+    );
+    res.json(updatedRecord);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -44,6 +49,27 @@ router.patch('/:id/od', authenticateToken, authorizeRoles('coordinator'), async 
     res.json({ message: 'OD status updated', attendance });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// @route   GET /api/attendance/my-od-requests
+// @desc    Get all OD requests for the current student
+// @access  Private (Student only)
+router.get('/my-od-requests', authenticateToken, authorizeRoles('student'), async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const odRequests = await Attendance.find({ student: studentId })
+      .populate({
+        path: 'event',
+        select: 'name startDateTime' // Select only the fields needed by the frontend
+      })
+      .sort({ createdAt: -1 }); // Show the most recent requests first
+
+    res.json(odRequests);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 

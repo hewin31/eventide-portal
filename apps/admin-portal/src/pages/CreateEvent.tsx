@@ -51,6 +51,7 @@ const CreateEvent = () => {
     registrationLink: '',
     enableAttendance: false,
     requireODApproval: false,
+    status: 'pending', // Default status
     themeColor: '#3b82f6',
   });
 
@@ -138,6 +139,7 @@ const CreateEvent = () => {
       posterImage: posterImageId, // Send the uploaded image ID
       qrCodeImage: qrCodeImageId,
       clubId,
+      status: 'pending',
       contactPersons,
     };
 
@@ -490,6 +492,17 @@ const CreateEvent = () => {
                       onChange={(e) => setEventData({...eventData, registrationLink: e.target.value})}
                       placeholder="https://forms.google.com/..."
                       className="mt-1.5"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 col-span-2">
+                    <div>
+                      <Label htmlFor="requireODApproval" className="text-base font-medium">Require OD Approval?</Label>
+                      <p className="text-sm text-muted-foreground mt-1">If enabled, participants can request On-Duty status.</p>
+                    </div>
+                    <Switch 
+                      id="requireODApproval"
+                      checked={eventData.requireODApproval}
+                      onCheckedChange={(checked) => setEventData({...eventData, requireODApproval: checked})}
                     />
                   </div>
                 </div>
