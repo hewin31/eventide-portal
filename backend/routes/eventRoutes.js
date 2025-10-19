@@ -176,6 +176,27 @@ router.get('/:id/registrations', authenticateToken, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// @route   GET /api/events/public/:id
+// @desc    Get a single approved event by ID for public view
+// @access  Public
+router.get('/public/:id', async (req, res) => {
+  try {
+    const event = await Event.findOne({ _id: req.params.id, status: 'approved' })
+      .populate('club', 'name');
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found or not approved' });
+    }
+
+    res.json(event);
+  } catch (err) {
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
 // @route   GET /api/events/public
 // @desc    Get all approved events for public/guest view
 // @access  Public
@@ -190,6 +211,24 @@ router.get('/public', async (req, res) => {
     res.status(500).json({ error: 'Server Error' });
   }
 });
+
+// @route   GET /api/events/public
+// @desc    Get all approved events for public/guest view
+// @access  Public
+router.get('/public', async (req, res) => {
+  try {
+    const events = await Event.find({ status: 'approved' })
+      .populate('club', 'name')
+      .sort({ startDateTime: -1 });
+    res.json(events);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
+
+
+
 // @route   GET /api/events/my-events
 // @desc    Get all events the current student is registered for
 // @access  Private (Student only)
