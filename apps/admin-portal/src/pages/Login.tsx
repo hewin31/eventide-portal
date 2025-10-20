@@ -35,12 +35,6 @@ const Login = () => {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none animate-pulse" />
       <Card className="w-full max-w-md shadow-2xl bg-gradient-to-br from-card/90 via-card to-card/80 backdrop-blur-xl relative z-10 border-primary/10 animate-bounce-in">
         <CardHeader className="space-y-4 text-center">
-          <div className="flex justify-center animate-float">
-            <div className="bg-gradient-to-br from-primary via-accent to-primary p-4 rounded-full shadow-xl hover:shadow-2xl hover:shadow-primary/40 transition-all duration-500 transform hover:scale-110 border-2 border-accent/20">
-              <GraduationCap className="h-10 w-10 text-white drop-shadow-lg" />
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-lg">
-        <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center animate-pulse">
             <div className="bg-gradient-to-br from-primary to-secondary p-4 rounded-full shadow-lg">
               <GraduationCap className="h-10 w-10 text-white" />
@@ -85,12 +79,6 @@ const Login = () => {
                 className="transition-all duration-300 font-inter"
               />
             </div>
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg font-semibold rounded-lg animate-slideUp font-poppins transition-all duration-300"
-              style={{ animationDelay: '0.3s' }}
-              disabled={isLoading}
-            >
             <Button type="submit" className="w-full h-12 text-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg hover:shadow-primary/30 transition-all duration-300" disabled={isLoading}>
               {isLoading ? (
                 <span className="flex items-center gap-2">

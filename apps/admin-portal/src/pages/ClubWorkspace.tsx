@@ -168,7 +168,8 @@ const ClubWorkspace = () => {
             <TabsContent value="events" className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold">Club Events</h2>
-                {user?.role === 'member' && (
+                {/* Show button if user is a member of this specific club (this includes the coordinator) */}
+                {club.members.some((member: any) => member._id === user?.id) && (
                   <Button 
                     onClick={() => navigate(`/club/${clubId}/create-event`)}
                     className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"

@@ -12,11 +12,16 @@ router.post('/', authenticateToken, authorizeRoles('member', 'coordinator'), asy
     // Destructure all the fields from the detailed form
     const { clubId, ...eventData } = req.body;
     const createdById = req.user.id;
+    const creatorRole = req.user.role;
+
+    // If the creator is a coordinator, auto-approve the event
+    const status = creatorRole === 'coordinator' ? 'approved' : 'pending';
 
     const event = new Event({ 
       ...eventData,
       club: clubId, 
-      createdBy: createdById
+      createdBy: createdById,
+      status: status
     });
     await event.save();
     debug(`Event created: ${event.name} by user ${createdById}`);
