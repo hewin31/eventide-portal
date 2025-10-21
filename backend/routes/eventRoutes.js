@@ -11,17 +11,16 @@ router.post('/', authenticateToken, authorizeRoles('member', 'coordinator'), asy
   try {
     // Destructure all the fields from the detailed form
     const { clubId, ...eventData } = req.body;
-    const createdById = req.user.id;
-    const creatorRole = req.user.role;
+    const { id: createdById, role: creatorRole } = req.user;
 
-    // If the creator is a coordinator, auto-approve the event
-    const status = creatorRole === 'coordinator' ? 'approved' : 'pending';
+    // The backend is the source of truth for status logic.
+    const finalStatus = creatorRole === 'coordinator' ? 'approved' : 'pending';
 
     const event = new Event({ 
-      ...eventData,
+      ...eventData, // isDraft property from body will be ignored by the schema
       club: clubId, 
       createdBy: createdById,
-      status: status
+      status: finalStatus,
     });
     await event.save();
     debug(`Event created: ${event.name} by user ${createdById}`);

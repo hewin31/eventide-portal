@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { EventForm } from '@/components/EventForm';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Send } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { ArrowLeft, Loader2, Save, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -57,6 +57,50 @@ const CreateEvent = () => {
     { id: '1', name: '', phone: '', designation: '', whatsappLink: '' }
   ]);
 
+  const getDraftKey = useCallback(() => {
+    if (!user?.id || !clubId) return null;
+    return `event-draft-${user.id}-${clubId}`;
+  }, [user?.id, clubId]);
+
+  const handleSaveDraft = () => {
+    const draftData = {
+      eventData,
+      posterImageId,
+      posterPreview,
+      qrCodeImageId,
+      qrCodePreview,
+      contactPersons,
+    };
+    const draftKey = getDraftKey();
+    if (!draftKey) return; // Should not happen if user and club are loaded
+    localStorage.setItem(draftKey, JSON.stringify(draftData));
+    toast.success('Draft Saved Locally!', {
+      description: 'Your event progress has been saved in your browser.',
+    });
+  };
+
+  useEffect(() => {
+    const draftKey = getDraftKey();
+    if (!draftKey) return;
+    const savedDraft = localStorage.getItem(draftKey);
+
+    if (savedDraft) {
+      const loadDraft = () => {
+        const parsedDraft = JSON.parse(savedDraft);
+        setEventData(parsedDraft.eventData || eventData);
+        setPosterImageId(parsedDraft.posterImageId || null);
+        setPosterPreview(parsedDraft.posterPreview || '');
+        setQrCodeImageId(parsedDraft.qrCodeImageId || null);
+        setQrCodePreview(parsedDraft.qrCodePreview || '');
+        setContactPersons(parsedDraft.contactPersons || contactPersons);
+      };
+      toast.info('You have a saved draft for this event.', {
+        action: { label: 'Restore', onClick: () => loadDraft() },
+        duration: 10000,
+      });
+    }
+  }, [getDraftKey]); // Re-run if the key changes (user or club)
+
   const handleImageUpload = async (file: File, type: 'poster' | 'qr') => {
     // Create a preview
     const reader = new FileReader();
@@ -87,52 +131,97 @@ const CreateEvent = () => {
     }
   };
 
-  const handleSaveDraft = () => {
-    toast({
-      title: "Draft Saved",
-      description: "Your event has been saved as draft.",
-    });
-  };
-
-  const handlePublish = async () => {
+  const handleSubmit = async () => {
     setIsLoading(true);
-    // Validation
-    if (!eventData.name || !eventData.description) {
-      toast({
-        title: "Missing Required Fields",
-        description: "Please fill in the event name and description.",
-        variant: "destructive",
+
+    const requiredFields = [
+      'name', 'description', 'eventType', 'eventCategory', 
+      'startDateTime', 'endDateTime', 'venue', 'mode', 'maxParticipants'
+    ];
+    const missingFields = requiredFields.filter(field => !eventData[field as keyof typeof eventData]);
+    if (missingFields.length > 0) {
+      toast.error('Missing Required Fields', {
+        description: `Please fill in: ${missingFields.join(', ')}`,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (eventData.requiresFee && !eventData.feeAmount) {
+      toast.error('Fee Amount Required', {
+        description: 'Please specify the fee amount when registration fee is required.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    const contactErrors = contactPersons.some(
+      (cp) => !cp.name || !cp.phone || !cp.whatsappLink
+    );
+
+    if (contactErrors) {
+      toast.error('Contact Information Incomplete', {
+        description: 'Please ensure all contact persons have a name, phone number, and WhatsApp link.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!posterImageId) {
+      toast.error('Poster Image Required', {
+        description: 'Please upload an event poster before publishing.',
       });
       setIsLoading(false);
       return;
     }
 
     const payload = {
-      ...eventData,
-      posterImage: posterImageId, // Send the uploaded image ID
+      name: eventData.name,
+      description: eventData.description,
+      eventType: eventData.eventType,
+      eventCategory: eventData.eventCategory,
+      startDateTime: eventData.startDateTime ? new Date(eventData.startDateTime) : null,
+      endDateTime: eventData.endDateTime ? new Date(eventData.endDateTime) : null,
+      registrationDeadline: eventData.registrationDeadline ? new Date(eventData.registrationDeadline) : null,
+      venue: eventData.venue,
+      mode: eventData.mode,
+      requiresFee: eventData.requiresFee,
+      feeAmount: eventData.requiresFee ? Number(eventData.feeAmount) : 0,
+      maxParticipants: Number(eventData.maxParticipants) || 1,
+      totalSeats: Number(eventData.totalSeats) || 0,
+      eligibility: eventData.eligibility || '',
+      registrationLink: eventData.registrationLink || '',
+      enableAttendance: eventData.enableAttendance || false,
+      requireODApproval: eventData.requireODApproval || false,
+      themeColor: eventData.themeColor,
+      posterImage: posterImageId,
       qrCodeImage: qrCodeImageId,
+      contactPersons: contactPersons.map(({ name, phone, designation, whatsappLink }) => ({
+        name, phone, designation, whatsappLink
+      })),
       clubId,
-      status: 'pending',
-      contactPersons,
     };
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/events`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) throw new Error('Failed to publish event');
 
+      // Clear the draft from local storage on successful submission
+      const draftKey = getDraftKey();
+      if (draftKey) localStorage.removeItem(draftKey);
+
       await queryClient.invalidateQueries({ queryKey: ['events', clubId] });
-      toast({ title: "Event Published!", description: "Your event is now live." });
+      toast.success('Event Submitted!', {
+        description: (user?.role === 'coordinator' ? 'Your event has been published immediately.' : 'Your event is now pending approval.'),
+      });
       navigate(`/club/${clubId}`);
     } catch (error) {
-      toast({ title: "Error", description: "Could not publish event.", variant: "destructive" });
+      toast.error('Submission Failed', { description: (error as Error).message });
     } finally {
       setIsLoading(false);
     }
@@ -173,12 +262,12 @@ const CreateEvent = () => {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
-                  <Save className="mr-2 h-4 w-4" />
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Save Draft
                 </Button>
-                <Button onClick={handlePublish} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
-                  <Send className="mr-2 h-4 w-4" />
-                  Publish Event
+                <Button onClick={handleSubmit} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  {user?.role === 'coordinator' ? 'Publish Immediately' : 'Submit for Approval'}
                 </Button>
               </div>
             </div>
@@ -202,12 +291,12 @@ const CreateEvent = () => {
               Cancel
             </Button>
             <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading}>
-              <Save className="mr-2 h-4 w-4" />
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Draft
             </Button>
-            <Button onClick={handlePublish} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
-              <Send className="mr-2 h-4 w-4" />
-              Publish Event
+            <Button onClick={handleSubmit} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {user?.role === 'coordinator' ? 'Publish Immediately' : 'Submit for Approval'}
             </Button>
           </div>
         </div>
