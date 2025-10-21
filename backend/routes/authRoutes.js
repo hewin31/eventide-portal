@@ -70,7 +70,18 @@ router.post('/login', async (req, res) => {
 
 // Profile route
 router.get('/profile', authenticateToken, async (req, res) => {
-  res.json({ user: req.user });
+  try {
+    // req.user.id is set by authenticateToken middleware from the JWT payload
+    const user = await User.findById(req.user.id).populate('clubs');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    // Return the same user object structure as the login route
+    const userProfile = { id: user._id, name: user.name, email: user.email, role: user.role, clubs: (user.clubs || []).map(c => ({...c.toObject(), id: c._id.toString()})) };
+    res.json({ user: userProfile });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error while fetching profile' });
+  }
 });
 
 module.exports = router;
