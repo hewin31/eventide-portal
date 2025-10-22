@@ -4,16 +4,18 @@ const Event = require('../models/Event');
 const Attendance = require('../models/Attendance');
 const Club = require('../models/Club');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { generateEventQRCode } = require('../services/qrService'); // Correctly imported
 
 const debug = require('debug')('app:eventRoutes');
+
+// -----------------------------
 // Create event (member and coordinator)
+// -----------------------------
 router.post('/', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
   try {
-    // Destructure all the fields from the detailed form
     const { clubId, ...eventData } = req.body;
     const { id: createdById, role: creatorRole } = req.user;
 
-    // The backend is the source of truth for status logic.
     const finalStatus = creatorRole === 'coordinator' ? 'approved' : 'pending';
 
     const event = new Event({ 
@@ -22,98 +24,86 @@ router.post('/', authenticateToken, authorizeRoles('member', 'coordinator'), asy
       createdBy: createdById,
       status: finalStatus,
     });
+
+    // Generate QR code if approved immediately
+    if (event.status === 'approved') {
+      try {
+        const { checkInId, checkInQRCode } = await generateEventQRCode(event);
+        event.checkInId = checkInId;
+        event.checkInQRCode = checkInQRCode;
+      } catch (qrError) {
+        debug(`QR Code generation failed: ${qrError.message}`);
+      }
+    }
+
     await event.save();
     debug(`Event created: ${event.name} by user ${createdById}`);
-
     res.status(201).json(event);
+
   } catch (err) {
     debug(`Error creating event: ${err.message}`);
     res.status(400).json({ error: err.message });
   }
 });
 
+// -----------------------------
+// Delete event
+// -----------------------------
 router.delete('/:id', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
-  console.log('DELETE /api/events/:id called');
-  console.log('Event ID:', req.params.id);
-  console.log('User:', req.user);
-
   try {
     const event = await Event.findById(req.params.id);
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-    console.log('Event found:', event);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
 
     const club = await Club.findById(event.club);
-    if (!club) {
-      return res.status(404).json({ error: 'Associated club not found' });
-    }
-    console.log('Associated club:', club);
- 
-    const isCoordinator = club && club.coordinator ? club.coordinator._id.toString() === req.user.id : false;
-    // Check if the user is a member of the club
-    const isClubMember = club.members && club.members.some(memberId => memberId.toString() === req.user.id);
- 
-    if (!isCoordinator && !isClubMember) {
+    if (!club) return res.status(404).json({ error: 'Associated club not found' });
+
+    const isCoordinator = club.coordinator?._id?.toString() === req.user.id;
+    const isClubMember = club.members?.some(memberId => memberId.toString() === req.user.id);
+
+    if (!isCoordinator && !isClubMember)
       return res.status(403).json({ error: 'User not authorized to delete this event' });
-    }
 
     await Event.findByIdAndDelete(req.params.id);
     await Attendance.deleteMany({ event: req.params.id });
 
-    console.log(`Event ${req.params.id} and its attendance records deleted by user ${req.user.id}`);
     res.json({ message: 'Event and associated attendance records removed' });
+
   } catch (err) {
-    console.log(`Error deleting event ${req.params.id}:`, err);
-    if (err.kind === 'ObjectId' || err.name === 'CastError') {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-    res.status(500).json({ error: 'Server error while trying to delete event' });
+    console.log(`Error deleting event: ${err}`);
+    if (err.kind === 'ObjectId') return res.status(404).json({ error: 'Event not found' });
+    res.status(500).json({ error: 'Server error while deleting event' });
   }
 });
 
-// Update event
+// -----------------------------
+// Update event details
+// -----------------------------
 router.put('/:id', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
-  debug(`PUT /api/events/${req.params.id} called`);
   try {
     const event = await Event.findById(req.params.id);
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
+    if (!event) return res.status(404).json({ error: 'Event not found' });
 
     const club = await Club.findById(event.club);
-    if (!club) {
-      return res.status(404).json({ error: 'Associated club not found' });
-    }
+    if (!club) return res.status(404).json({ error: 'Associated club not found' });
 
-    // Authorization check: Only the event creator or the club coordinator can update.
-    const isCoordinator = club && club.coordinator ? club.coordinator._id.toString() === req.user.id : false;
-    // Check if the user is a member of the club
-    const isClubMember = club.members && club.members.some(memberId => memberId.toString() === req.user.id);
- 
-    if (!isCoordinator && !isClubMember) {
+    const isCoordinator = club.coordinator?._id?.toString() === req.user.id;
+    const isClubMember = club.members?.some(memberId => memberId.toString() === req.user.id);
+    if (!isCoordinator && !isClubMember)
       return res.status(403).json({ error: 'User not authorized to update this event' });
-    }
 
-    const updatedEvent = await Event.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true } // new: true returns the updated doc, runValidators ensures schema rules are checked
-    );
-
-    debug(`Event ${req.params.id} updated by user ${req.user.id}`);
+    Object.assign(event, req.body);
+    const updatedEvent = await event.save();
     res.json(updatedEvent);
 
   } catch (err) {
-    debug(`Error updating event ${req.params.id}: ${err.message}`);
-    if (err.name === 'CastError') {
-      return res.status(400).json({ error: `Invalid data format: ${err.message}` });
-    }
+    debug(`Error updating event: ${err.message}`);
     res.status(500).json({ error: 'Server error while trying to update event' });
   }
 });
 
-// Update event status (faculty)
+// -----------------------------
+// Update event status (faculty only)
+// -----------------------------
 router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
   try {
     const validStatuses = ['approved', 'rejected', 'pending'];
@@ -121,34 +111,50 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), as
     if (!validStatuses.includes(status))
       return res.status(400).json({ error: 'Invalid status value' });
 
-    const event = await Event.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    event.status = status;
+
+    if (status === 'approved' && !event.checkInQRCode) {
+      try {
+        const { checkInId, checkInQRCode } = await generateEventQRCode(event);
+        event.checkInId = checkInId;
+        event.checkInQRCode = checkInQRCode;
+        debug(`QR Code generated for event ${event._id} on approval.`);
+      } catch (qrError) {
+        debug(`QR Code generation failed for event ${event._id} on approval: ${qrError.message}`);
+      }
+    }
+    await event.save();
     res.json(event);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// Register student for event (student only)
+// -----------------------------
+// Register student for event
+// -----------------------------
 router.post('/:id/register', authenticateToken, authorizeRoles('student'), async (req, res) => {
   try {
-    const studentId = req.user.id; // Use authenticated user's ID for security
+    const studentId = req.user.id;
     const eventId = req.params.id;
 
-    // Check if student is already registered
-    const existingRegistration = await Event.findOne({ _id: eventId, registeredStudents: studentId });
-    if (existingRegistration) {
-      return res.status(409).json({ error: 'Student already registered for this event' });
-    }
+    const existingRegistration = await Event.findOne({
+      _id: eventId,
+      registeredStudents: studentId,
+    });
+    if (existingRegistration)
+      return res.status(409).json({ error: 'Already registered for this event' });
 
     const event = await Event.findByIdAndUpdate(
       eventId,
-      { $addToSet: { registeredStudents: studentId } }, // $addToSet prevents duplicates
+      { $addToSet: { registeredStudents: studentId } },
       { new: true }
     );
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
-    // Also, create an attendance record for the student for this event
     const existingAttendance = await Attendance.findOne({ event: eventId, student: studentId });
     if (!existingAttendance) {
       const newAttendance = new Attendance({
@@ -160,13 +166,16 @@ router.post('/:id/register', authenticateToken, authorizeRoles('student'), async
       await newAttendance.save();
     }
 
-    res.json({ message: 'Student registered for event successfully', event });
+    res.json({ message: 'Registered successfully', event });
+
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// -----------------------------
 // Get registered students + attendance
+// -----------------------------
 router.get('/:id/registrations', authenticateToken, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('registeredStudents', 'name email role');
@@ -181,9 +190,9 @@ router.get('/:id/registrations', authenticateToken, async (req, res) => {
   }
 });
 
-// @route   GET /api/events/public/:id
-// @desc    Get a single approved event by ID for public view
-// @access  Public
+// -----------------------------
+// Public routes (no auth)
+// -----------------------------
 router.get('/public/:id', async (req, res) => {
   try {
     const event = await Event.findOne({ _id: req.params.id, status: 'approved' })
@@ -201,9 +210,7 @@ router.get('/public/:id', async (req, res) => {
     res.status(500).json({ error: 'Server Error' });
   }
 });
-// @route   GET /api/events/public
-// @desc    Get all approved events for public/guest view
-// @access  Public
+
 router.get('/public', async (req, res) => {
   try {
     const events = await Event.find({ status: 'approved' })
@@ -216,35 +223,15 @@ router.get('/public', async (req, res) => {
   }
 });
 
-// @route   GET /api/events/public
-// @desc    Get all approved events for public/guest view
-// @access  Public
-router.get('/public', async (req, res) => {
-  try {
-    const events = await Event.find({ status: 'approved' })
-      .populate('club', 'name')
-      .sort({ startDateTime: -1 });
-    res.json(events);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Server Error' });
-  }
-});
-
-
-
-// @route   GET /api/events/my-events
-// @desc    Get all events the current student is registered for
-// @access  Private (Student only)
+// -----------------------------
+// Get student’s registered events
+// -----------------------------
 router.get('/my-events', authenticateToken, authorizeRoles('student'), async (req, res) => {
   try {
     const studentId = req.user.id;
-
-    // Find all events where the student is registered
     const events = await Event.find({ registeredStudents: studentId })
       .populate('club', 'name') // Include club name
       .sort({ startDateTime: -1 }); // Show latest events first
-
     res.json(events);
   } catch (err) {
     console.error(err.message);
@@ -252,43 +239,9 @@ router.get('/my-events', authenticateToken, authorizeRoles('student'), async (re
   }
 });
 
-// @route   GET /api/events/public
-// @desc    Get all approved events for public/guest view
-// @access  Public
-router.get('/public', async (req, res) => {
-  try {
-    const events = await Event.find({ status: 'approved' })
-      .populate('club', 'name')
-      .sort({ startDateTime: -1 });
-    res.json(events);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Server Error' });
-  }
-});
-
-// @route   GET /api/events/my-events
-// @desc    Get all events the current student is registered for
-// @access  Private (Student only)
-router.get('/my-events', authenticateToken, authorizeRoles('student'), async (req, res) => {
-  try {
-    const studentId = req.user.id;
-
-    // Find all events where the student is registered
-    const events = await Event.find({ registeredStudents: studentId })
-      .populate('club', 'name') // Include club name
-      .sort({ startDateTime: -1 }); // Show latest events first
-
-    res.json(events);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Server Error' });
-  }
-});
-
-// @route   GET /api/events/:id
-// @desc    Get a single event by ID
-// @access  Private
+// -----------------------------
+// Get single event (private)
+// -----------------------------
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate('club', 'name');
@@ -306,10 +259,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-
-// @route   GET /api/events/club/:clubId
-// @desc    Get all events for a specific club
-// @access  Private
+// -----------------------------
+// Get all events for a specific club
+// -----------------------------
 router.get('/club/:clubId', authenticateToken, async (req, res) => {
   try {
     const events = await Event.find({ club: req.params.clubId }).sort({ startDateTime: -1 });
@@ -319,9 +271,9 @@ router.get('/club/:clubId', authenticateToken, async (req, res) => {
   }
 });
 
-// @route   GET /api/events
-// @desc    Get all approved events from all clubs
-// @access  Private (students only)
+// -----------------------------
+// Get all approved events (students, coordinators, members)
+// -----------------------------
 router.get('/', authenticateToken, authorizeRoles('student','coordinator','member'), async (req, res) => {
   try {
     const events = await Event.find({ status: 'approved' })

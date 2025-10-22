@@ -1,0 +1,11 @@
+club_id,club_name,dept,popularity_score
+1,Club_1,Electronics,0.7
+2,Club_2,Mechanical,0.81
+3,Club_3,Computer Science,0.92
+4,Club_4,Information Technology,0.67
+5,Club_5,Electronics,0.96
+6,Club_6,Electrical,0.96
+7,Club_7,Computer Science,0.82
+8,Club_8,Electrical,0.58
+9,Club_9,Electrical,0.95
+10,Club_10,Mechanical,0.95

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/utils';
+import { QRCodeModal } from '@/components/QRCodeModal';
 
 async function fetchEventDetails(eventId: string, token: string | null) {
   if (!token) throw new Error('Not authenticated');
@@ -39,7 +40,7 @@ const EventManagement = () => {
   const token = localStorage.getItem('token');
   const [activeTab, setActiveTab] = useState('details');
   const queryClient = useQueryClient();
-  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const isCoordinator = user?.role === 'coordinator';
 
@@ -230,20 +231,21 @@ const EventManagement = () => {
                       <CardTitle>Attendance Management</CardTitle>
                       <CardDescription>Mark and track event attendance</CardDescription>
                     </div>
-                    <Button onClick={() => setShowQRScanner(!showQRScanner)}>
-                      <QrCode className="mr-2 h-4 w-4" />
-                      {showQRScanner ? 'Close Scanner' : 'Scan QR Code'}
-                    </Button>
+                    {event.checkInQRCode ? (
+                      <Button onClick={() => setIsQrModalOpen(true)}>
+                        <QrCode className="mr-2 h-4 w-4" />
+                        Show Check-in QR
+                      </Button>
+                    ) : (
+                      <Button variant="outline" disabled>
+                        <QrCode className="mr-2 h-4 w-4" />
+                        QR Not Generated
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {showQRScanner && (
-                    <div className="mb-6 p-8 border-2 border-dashed border-border rounded-lg text-center bg-muted/50">
-                      <QrCode className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">QR Scanner will be activated here</p>
-                      <p className="text-sm text-muted-foreground mt-2">Camera permissions required</p>
-                    </div>
-                  )}
+                  <p className="text-sm text-muted-foreground mb-6">Display the QR code on a screen for students to scan with the Eventide mobile app to mark their attendance.</p>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -359,6 +361,14 @@ const EventManagement = () => {
             </TabsContent>
 
           </Tabs>
+
+          {isQrModalOpen && (
+            <QRCodeModal
+              eventName={event.name}
+              qrCodeDataUrl={event.checkInQRCode}
+              onClose={() => setIsQrModalOpen(false)}
+            />
+          )}
         </div>
       </main>
     </div>

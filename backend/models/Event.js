@@ -30,6 +30,8 @@ const EventSchema = new mongoose.Schema({
   galleryImages: [{ type: mongoose.Schema.Types.ObjectId }],
   registeredStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   requireODApproval: { type: Boolean, default: false }, // This was missing
+  checkInId: { type: String, unique: true, sparse: true }, // For QR code check-in
+  checkInQRCode: { type: String }, // Stores the QR code data URL
   themeColor: { type: String, default: '#3b82f6' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
