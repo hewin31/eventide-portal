@@ -32,6 +32,14 @@ const EventSchema = new mongoose.Schema({
   requireODApproval: { type: Boolean, default: false }, // This was missing
   checkInId: { type: String, unique: true, sparse: true }, // For QR code check-in
   checkInQRCode: { type: String }, // Stores the QR code data URL
+  viewsCount: {
+    type: Number,
+    default: 0,
+  },
+  likesCount: {
+    type: Number,
+    default: 0,
+  },
   themeColor: { type: String, default: '#3b82f6' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },

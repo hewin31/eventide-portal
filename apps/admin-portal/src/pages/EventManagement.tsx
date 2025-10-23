@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // This was not used
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, FileText, Users, QrCode, CheckSquare } from 'lucide-react';
+import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -124,6 +124,16 @@ const EventManagement = () => {
             <p className="text-muted-foreground">
               {new Date(event.startDateTime).toLocaleDateString()} • {new Date(event.startDateTime).toLocaleTimeString()}
             </p>
+            <div className="mt-4 flex items-center space-x-6 text-sm text-muted-foreground">
+              <div className="flex items-center space-x-2">
+                <Eye className="h-5 w-5" />
+                <span>{event.viewsCount || 0} Views</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Heart className="h-5 w-5" />
+                <span>{event.likesCount || 0} Likes</span>
+              </div>
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

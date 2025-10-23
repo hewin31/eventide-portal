@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from '@/components/Sidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'; // This was not used
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Ticket } from 'lucide-react';
+import { Calendar, Users, Ticket, Eye, Heart } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -43,6 +43,21 @@ async function registerForEvent({ eventId, token }: { eventId: string; token: st
   return res.json();
 }
 
+async function toggleLike({ eventId, token }: { eventId: string; token: string | null }) {
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/like`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Like failed');
+  }
+  return res.json();
+}
+
 const AllEvents = () => {
   const { user } = useAuth();
   const token = localStorage.getItem('token');
@@ -65,6 +80,40 @@ const AllEvents = () => {
     onError: (error) => {
       toast.error(error.message);
       setSelectedEvent(null);
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: toggleLike,
+    onMutate: async ({ eventId }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['allEvents'] });
+
+      // Snapshot the previous value
+      const previousEvents = queryClient.getQueryData(['allEvents']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['allEvents'], (old) =>
+        old.map((event) =>
+          event._id === eventId
+            ? {
+                ...event,
+                userHasLiked: !event.userHasLiked,
+                likesCount: event.userHasLiked ? event.likesCount - 1 : event.likesCount + 1,
+              }
+            : event
+        )
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousEvents };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['allEvents'], context.previousEvents);
+      toast.error('Failed to update like status.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['allEvents'] });
     },
   });
 
@@ -110,6 +159,22 @@ const AllEvents = () => {
                         <Calendar className="h-4 w-4" />
                         {new Date(event.startDateTime).toLocaleDateString('en-US', { dateStyle: 'medium' })}
                       </CardDescription>
+                      <div className="flex items-center space-x-4 pt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <Eye className="h-4 w-4" />
+                          {event.viewsCount || 0}
+                        </span>
+                        <button
+                          className="flex items-center gap-1.5 z-10"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            likeMutation.mutate({ eventId: event._id, token });
+                          }}
+                        >
+                          <Heart className={`h-4 w-4 ${event.userHasLiked ? 'text-red-500 fill-current' : ''}`} />
+                          <span>{event.likesCount || 0}</span>
+                        </button>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-muted-foreground line-clamp-2 min-h-[2.5rem] group-hover:text-foreground/80 transition-colors duration-300">{event.description}</p>
