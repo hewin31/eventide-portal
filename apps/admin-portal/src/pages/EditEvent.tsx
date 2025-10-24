@@ -48,6 +48,7 @@ const EditEvent = () => {
     requireODApproval: false,
     status: 'pending',
     themeColor: '#3b82f6',
+    tags: [],
   });
 
   const [posterImageId, setPosterImageId] = useState<string | null>(null);
@@ -164,8 +165,9 @@ const handleUpdate = async () => {
     posterImage: posterImageId,
     qrCodeImage: qrCodeImageId,
     contactPersons: contactPersons.map(({ name, phone, designation, whatsappLink }) => ({
-      name, phone, designation, whatsappLink
+      name, phone, designation, whatsappLink,
     })),
+    tags: eventData.tags || [],
   };
 
   console.log("Updating event with payload:", payload); // Debugging

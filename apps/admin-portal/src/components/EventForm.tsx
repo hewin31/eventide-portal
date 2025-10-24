@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -18,11 +19,21 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import {
   Calendar,
   DollarSign,
   Image as ImageIcon,
   MapPin,
   Plus,
+  Tags,
   Trash2,
   Upload,
   Users,
@@ -35,6 +46,19 @@ interface ContactPerson {
   designation: string;
   whatsappLink: string;
 }
+
+const TAGS_LIST = [
+  'Web Development',
+  'Mobile Development',
+  'AI/ML',
+  'Data Science',
+  'Cybersecurity',
+  'Cloud Computing',
+  'Robotics',
+  'IoT',
+  'Gaming',
+  'UI/UX Design',
+];
 
 interface EventFormProps {
   eventData: any;
@@ -72,6 +96,15 @@ export const EventForm = ({
     setContactPersons(
       contactPersons.map((cp) => (cp.id === id ? { ...cp, [field]: value } : cp))
     );
+  };
+
+  const handleTagSelect = (tag: string) => {
+    const currentTags = eventData.tags || [];
+    if (currentTags.includes(tag)) {
+      setEventData({ ...eventData, tags: currentTags.filter((t: string) => t !== tag) });
+    } else {
+      setEventData({ ...eventData, tags: [...currentTags, tag] });
+    }
   };
 
   return (
@@ -150,6 +183,46 @@ export const EventForm = ({
             <div>
               <Label htmlFor="clubName">Club Name</Label>
               <Input id="clubName" value={clubName} disabled className="mt-1.5 bg-muted" />
+            </div>
+            <div>
+              <Label htmlFor="tags">Tags</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start font-normal mt-1.5">
+                    <Tags className="mr-2 h-4 w-4" />
+                    {eventData.tags && eventData.tags.length > 0 ? 'Select tags...' : 'Select tags...'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search tags..." />
+                    <CommandEmpty>No tags found.</CommandEmpty>
+                    <CommandGroup>
+                      {TAGS_LIST.map((tag) => (
+                        <CommandItem
+                          key={tag}
+                          onSelect={() => handleTagSelect(tag)}
+                          className="cursor-pointer"
+                        >
+                          <div
+                            className={`mr-2 h-4 w-4 rounded-sm border ${
+                              eventData.tags?.includes(tag)
+                                ? 'bg-primary text-primary-foreground'
+                                : 'opacity-50'
+                            }`}
+                          />
+                          {tag}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {eventData.tags?.map((tag: string) => (
+                  <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => handleTagSelect(tag)}>{tag} &times;</Badge>
+                ))}
+              </div>
             </div>
           </div>
         </AccordionContent>

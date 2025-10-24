@@ -21,6 +21,7 @@ const EventSchema = new mongoose.Schema({
   requiresFee: { type: Boolean, default: false },
   feeAmount: { type: Number },
   qrCodeImage: { type: mongoose.Schema.Types.ObjectId },
+  tags: [{ type: String }], // Added tags field
   maxParticipants: { type: Number },
   totalSeats: { type: Number },
   eligibility: { type: String },

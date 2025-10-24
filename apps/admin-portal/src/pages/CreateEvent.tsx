@@ -47,6 +47,7 @@ const CreateEvent = () => {
     requireODApproval: false,
     status: 'pending', // Default status
     themeColor: '#3b82f6',
+    tags: [],
   });
 
   const [posterImageId, setPosterImageId] = useState<string | null>(null);
@@ -197,9 +198,10 @@ const CreateEvent = () => {
       posterImage: posterImageId,
       qrCodeImage: qrCodeImageId,
       contactPersons: contactPersons.map(({ name, phone, designation, whatsappLink }) => ({
-        name, phone, designation, whatsappLink
+        name, phone, designation, whatsappLink,
       })),
       clubId,
+      tags: eventData.tags || [],
     };
 
     try {
