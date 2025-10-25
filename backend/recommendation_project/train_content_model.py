@@ -108,7 +108,7 @@ for rec in recommendations[sample_student]:
 # ---------- STEP 9: Save model artifacts ----------
 os.makedirs(os.path.join(BASE_DIR, "models"), exist_ok=True)
 joblib.dump(vectorizer, os.path.join(BASE_DIR, "models", "tfidf_vectorizer.joblib"))
-np.save(os.path.join(BASE_DIR, "models", "similarity_matrix.npy"), similarity_matrix)
+np.save(os.path.join(BASE_DIR, "models", "event_vectors.npy"), event_vectors.toarray())
 
 print("\n💾 Model and vectorizer saved successfully!")
 print("🚀 Training pipeline complete.")

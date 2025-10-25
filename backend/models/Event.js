@@ -8,6 +8,7 @@ const ContactPersonSchema = new mongoose.Schema({
 });
 
 const EventSchema = new mongoose.Schema({
+  event_id: { type: Number }, 
   club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
   name: { type: String, required: true },
   description: { type: String, required: true },

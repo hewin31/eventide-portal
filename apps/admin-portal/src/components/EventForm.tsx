@@ -48,16 +48,20 @@ interface ContactPerson {
 }
 
 const TAGS_LIST = [
-  'Web Development',
-  'Mobile Development',
-  'AI/ML',
-  'Data Science',
-  'Cybersecurity',
-  'Cloud Computing',
-  'Robotics',
-  'IoT',
-  'Gaming',
-  'UI/UX Design',
+  "AI",
+  "Machine Learning",
+  "Robotics",
+  "Cloud",
+  "Cybersecurity",
+  "IoT",
+  "Embedded Systems",
+  "CAD",
+  "3D Printing",
+  "Automation",
+  "Sustainability",
+  "Power Systems",
+  "Networking",
+  "Web Development",
 ];
 
 interface EventFormProps {
