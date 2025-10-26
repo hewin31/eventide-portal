@@ -351,6 +351,7 @@ export const EventForm = ({
                     value={eventData.feeAmount}
                     onChange={(e) => setEventData({ ...eventData, feeAmount: e.target.value })}
                     placeholder="100"
+                    min="0"
                     className="mt-1.5"
                   />
                 </div>
@@ -402,24 +403,27 @@ export const EventForm = ({
           <div className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="maxParticipants">Max Participants / Team Size *</Label>
+                <Label htmlFor="teamSize">Team Size *</Label>
                 <Input
-                  id="maxParticipants"
+                  id="teamSize"
                   type="number"
-                  value={eventData.maxParticipants}
-                  onChange={(e) => setEventData({ ...eventData, maxParticipants: e.target.value })}
-                  placeholder="4"
+                  value={eventData.teamSize || 1}
+                  onChange={(e) => setEventData({ ...eventData, teamSize: parseInt(e.target.value, 10) || 1 })}
+                  placeholder="e.g., 1 for individual, 4 for a team"
                   className="mt-1.5"
+                  min="1"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Number of participants per registration (e.g., 1 for solo events).</p>
               </div>
               <div>
-                <Label htmlFor="totalSeats">Total Seats / Capacity</Label>
+                <Label htmlFor="totalCapacity">Total Event Capacity</Label>
                 <Input
-                  id="totalSeats"
+                  id="totalCapacity"
                   type="number"
-                  value={eventData.totalSeats}
-                  onChange={(e) => setEventData({ ...eventData, totalSeats: e.target.value })}
+                  value={eventData.totalCapacity}
+                  onChange={(e) => setEventData({ ...eventData, totalCapacity: parseInt(e.target.value, 10) })}
                   placeholder="100"
+                  min="0"
                   className="mt-1.5"
                 />
               </div>
@@ -438,11 +442,14 @@ export const EventForm = ({
               <Label htmlFor="registrationLink">External Registration Link</Label>
               <Input
                 id="registrationLink"
-                type="url"
+                type="text" // Use text to allow custom validation
                 value={eventData.registrationLink}
-                onChange={(e) => setEventData({ ...eventData, registrationLink: e.target.value })}
+                onChange={(e) => {
+                  setEventData({ ...eventData, registrationLink: e.target.value });
+                }}
                 placeholder="https://forms.google.com/..."
                 className="mt-1.5"
+                pattern="https?://.+"
               />
             </div>
             <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 col-span-2">
@@ -508,9 +515,13 @@ export const EventForm = ({
                     <Label>Contact Number *</Label>
                     <Input
                       value={contact.phone}
-                      onChange={(e) => updateContactPerson(contact.id, 'phone', e.target.value)}
+                      onChange={(e) => {
+                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                        if (numericValue.length <= 10) {
+                          updateContactPerson(contact.id, 'phone', numericValue);
+                        }
+                      }}
                       placeholder="9876543210"
-                      maxLength={10}
                       className="mt-1.5"
                     />
                   </div>
@@ -526,10 +537,14 @@ export const EventForm = ({
                   <div>
                     <Label>WhatsApp Group Link *</Label>
                     <Input
+                      type="text" // Use text to allow custom validation
                       value={contact.whatsappLink}
-                      onChange={(e) => updateContactPerson(contact.id, 'whatsappLink', e.target.value)}
+                      onChange={(e) => {
+                        updateContactPerson(contact.id, 'whatsappLink', e.target.value);
+                      }}
                       placeholder="https://chat.whatsapp.com/..."
                       className="mt-1.5"
+                      pattern="https?://.+"
                     />
                   </div>
                 </div>

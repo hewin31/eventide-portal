@@ -39,8 +39,8 @@ const CreateEvent = () => {
     mode: '',
     requiresFee: false,
     feeAmount: '',
-    maxParticipants: '',
-    totalSeats: '',
+    teamSize: 1, // Default to 1 for individual events
+    totalCapacity: '',
     eligibility: '',
     registrationLink: '',
     enableAttendance: false,
@@ -136,10 +136,10 @@ const CreateEvent = () => {
     setIsLoading(true);
 
     const requiredFields = [
-      'name', 'description', 'eventType', 'eventCategory', 
-      'startDateTime', 'endDateTime', 'venue', 'mode', 'maxParticipants'
+      'name', 'description', 'eventType', 'eventCategory',
+      'startDateTime', 'endDateTime', 'venue', 'mode', 'teamSize'
     ];
-    const missingFields = requiredFields.filter(field => !eventData[field as keyof typeof eventData]);
+    const missingFields = requiredFields.filter(field => !eventData[field as keyof typeof eventData] && eventData[field as keyof typeof eventData] !== 0);
     if (missingFields.length > 0) {
       toast.error('Missing Required Fields', {
         description: `Please fill in: ${missingFields.join(', ')}`,
@@ -188,8 +188,8 @@ const CreateEvent = () => {
       mode: eventData.mode,
       requiresFee: eventData.requiresFee,
       feeAmount: eventData.requiresFee ? Number(eventData.feeAmount) : 0,
-      maxParticipants: Number(eventData.maxParticipants) || 1,
-      totalSeats: Number(eventData.totalSeats) || 0,
+      teamSize: Number(eventData.teamSize) || 1,
+      totalCapacity: eventData.totalCapacity ? Number(eventData.totalCapacity) : null,
       eligibility: eventData.eligibility || '',
       registrationLink: eventData.registrationLink || '',
       enableAttendance: eventData.enableAttendance || false,

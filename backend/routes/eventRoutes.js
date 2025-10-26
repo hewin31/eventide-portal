@@ -19,11 +19,19 @@ router.post('/', authenticateToken, authorizeRoles('member', 'coordinator'), asy
 
     const finalStatus = creatorRole === 'coordinator' ? 'approved' : 'pending';
 
+    // --- START: Set remaining capacity on creation ---
+    // If totalCapacity is provided, initialize remainingCapacity to the same value.
+    if (eventData.totalCapacity && !isNaN(parseInt(eventData.totalCapacity))) {
+      eventData.remainingCapacity = parseInt(eventData.totalCapacity, 10);
+    }
+    // --- END: Set remaining capacity on creation ---
+
     const event = new Event({ 
-      ...eventData, // isDraft property from body will be ignored by the schema
+      ...eventData,
       club: clubId, 
       createdBy: createdById,
       status: finalStatus,
+      teamSize: eventData.teamSize || 1, // Ensure teamSize defaults to 1
     });
 
     // Generate QR code if approved immediately
@@ -146,16 +154,32 @@ router.post('/:id/register', authenticateToken, authorizeRoles('student'), async
       _id: eventId,
       registeredStudents: studentId,
     });
-    if (existingRegistration)
+    if (existingRegistration) {
       return res.status(409).json({ error: 'Already registered for this event' });
+    }
 
-    const event = await Event.findByIdAndUpdate(
-      eventId,
-      { $addToSet: { registeredStudents: studentId } },
-      { new: true }
-    );
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    // --- START: CRITICAL BACKEND VALIDATION ---
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
 
+    // Check if the event has a capacity limit and if it's full
+    if (typeof event.remainingCapacity === 'number' && event.remainingCapacity <= 0) {
+      return res.status(409).json({ error: 'This event is already full.' });
+    }
+
+    // Add the student to the registered list
+    event.registeredStudents.addToSet(studentId);
+
+    // Decrement capacity only if it's a number
+    if (typeof event.remainingCapacity === 'number') {
+      event.remainingCapacity -= 1;
+    }
+
+    await event.save();
+    // --- END: CRITICAL BACKEND VALIDATION ---
+    
     const existingAttendance = await Attendance.findOne({ event: eventId, student: studentId });
     if (!existingAttendance) {
       const newAttendance = new Attendance({
