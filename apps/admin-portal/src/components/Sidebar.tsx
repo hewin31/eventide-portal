@@ -1,13 +1,26 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Home, User, LogOut, GraduationCap, Calendar } from 'lucide-react';
+import { Home, User, LogOut, GraduationCap, Calendar, CheckSquare, ShieldCheck, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface SidebarProps {
   className?: string;
 }
+
+interface NavLink {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  roles?: ('student' | 'member' | 'coordinator')[];
+}
+
+const mainNavLinks: NavLink[] = [
+  { to: '/dashboard', icon: Home, label: 'My Clubs' },
+  { to: '/events', icon: Calendar, label: 'All Events' },
+  { to: '/profile', icon: User, label: 'Profile' },
+];
 
 export const Sidebar = ({ className }: SidebarProps) => {
   const { user, logout } = useAuth();
@@ -35,25 +48,33 @@ export const Sidebar = ({ className }: SidebarProps) => {
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
-        <Link to="/dashboard" className="block transition-all duration-300">
-          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
-            <Home className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-            My Clubs
-          </Button>
-        </Link>
-        <Link to="/events" className="block transition-all duration-300">
-          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
-            <Calendar className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-            All Events
-          </Button>
-        </Link>
-        <Link to="/profile" className="block transition-all duration-300">
-          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
-            <User className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-            Profile
-          </Button>
-        </Link>
+        {mainNavLinks.map((link) => (
+          <Link key={link.to} to={link.to} className="block transition-all duration-300">
+            <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+              <link.icon className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              {link.label}
+            </Button>
+          </Link>
+        ))}
       </nav>
+
+      {user?.role === 'coordinator' && (
+        <div className="p-4 space-y-2 border-t-2 border-primary/10">
+           <h3 className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Coordinator Tools</h3>
+           <Link to="/approvals/events" className="block transition-all duration-300">
+            <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+              <ShieldCheck className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              Event Approvals
+            </Button>
+          </Link>
+          <Link to="/approvals/od" className="block transition-all duration-300">
+            <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+              <CheckSquare className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              OD Management
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <div className="p-4 border-t-2 border-primary/10 transition-all duration-300">
         <Button

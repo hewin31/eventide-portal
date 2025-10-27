@@ -40,7 +40,7 @@ const EditEvent = () => {
     mode: '',
     requiresFee: false,
     feeAmount: '',
-    teamSize: 1,
+      teamSize: 1,
     totalCapacity: '',
     eligibility: '',
     registrationLink: '',

@@ -15,6 +15,8 @@ import AllEvents from "./pages/AllEvents";
 import EditEvent from "./pages/EditEvent";
 import EventManagement from "./pages/EventManagement";
 import Profile from "./pages/Profile";
+import EventApprovalsPage from "./pages/EventApprovalsPage";
+import ODManagementPage from "./pages/ODManagementPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -96,6 +98,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/approvals/events"
+              element={
+                <ProtectedRoute allowedRoles={['coordinator']}>
+                  <EventApprovalsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/approvals/od"
+              element={
+                <ProtectedRoute allowedRoles={['coordinator']}>
+                  <ODManagementPage />
                 </ProtectedRoute>
               }
             />

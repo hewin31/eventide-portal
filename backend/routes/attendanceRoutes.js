@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Attendance = require('../models/Attendance');
 const Event = require('../models/Event');
+const Club = require('../models/Club');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // @route   POST /api/attendance/check-in
@@ -88,6 +89,44 @@ router.patch('/:id/od', authenticateToken, authorizeRoles('coordinator'), async 
     res.json({ message: 'OD status updated', attendance });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// @route   GET /api/attendance/od-requests
+// @desc    Get all pending OD requests for events managed by the coordinator
+// @access  Private (Coordinator only)
+router.get('/od-requests', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
+  try {
+    const coordinatorId = req.user.id;
+
+    // 1. Find clubs managed by the coordinator
+    const clubs = await Club.find({ coordinator: coordinatorId }).select('_id');
+    const clubIds = clubs.map(c => c._id);
+
+    if (clubIds.length === 0) {
+      return res.json([]);
+    }
+
+    // 2. Find events belonging to those clubs
+    const events = await Event.find({ club: { $in: clubIds } }).select('_id');
+    const eventIds = events.map(e => e._id);
+
+    if (eventIds.length === 0) {
+      return res.json([]);
+    }
+
+    const odRequests = await Attendance.find({
+      event: { $in: eventIds },
+      odStatus: 'pending'
+    })
+    .populate('student', 'name email')
+    .populate({ path: 'event', select: 'name startDateTime club', populate: { path: 'club', select: 'name' } })
+    .sort({ createdAt: -1 });    
+    
+    res.json(odRequests);
+  } catch (err) {
+    console.error("Error fetching OD requests:", err); // Added logging
+    res.status(500).json({ error: 'Server error while fetching OD requests.' });
   }
 });
 

@@ -143,6 +143,32 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), as
 });
 
 // -----------------------------
+// Get pending event approvals for the coordinator
+// -----------------------------
+router.get('/pending-approvals', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
+  try {
+    const coordinatorId = req.user.id;
+
+    // 1. Find all clubs managed by this coordinator
+    const clubs = await Club.find({ coordinator: coordinatorId }).select('_id');
+    const clubIds = clubs.map(club => club._id);
+
+    if (clubIds.length === 0) {
+      return res.json([]); // No clubs, so no pending events
+    }
+
+    // 2. Find all events with 'pending' status belonging to those clubs
+    const pendingEvents = await Event.find({
+      club: { $in: clubIds },
+      status: 'pending'
+    }).populate('club', 'name').sort({ createdAt: -1 });
+
+    res.json(pendingEvents);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error while fetching pending approvals.' });
+  }
+});
+// -----------------------------
 // Register student for event
 // -----------------------------
 router.post('/:id/register', authenticateToken, authorizeRoles('student'), async (req, res) => {
