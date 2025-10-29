@@ -4,7 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { EventForm } from '@/components/EventForm';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Loader2, Send } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -273,10 +284,26 @@ const handleUpdate = async () => {
                 <p className="text-muted-foreground">Modify the details of your event.</p>
               </div>
               <div className="flex gap-3">
-                <Button onClick={handleUpdate} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
-                  <Send className="mr-2 h-4 w-4" />
-                  Update Event
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                      Update Event
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Update</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to save these changes? This will update the event details for everyone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleUpdate}>Update</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </div>
@@ -298,10 +325,26 @@ const handleUpdate = async () => {
             <Button variant="outline" onClick={() => navigate(`/club/${clubId}/event/${eventId}`)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdate} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
-              <Send className="mr-2 h-4 w-4" />
-              Update Event
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  Update Event
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Update</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to save these changes? This will update the event details for everyone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleUpdate}>Update</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </main>

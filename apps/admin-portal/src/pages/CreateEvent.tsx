@@ -5,6 +5,17 @@ import { Sidebar } from '@/components/Sidebar';
 import { EventForm } from '@/components/EventForm';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Save, Send } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -267,10 +278,26 @@ const CreateEvent = () => {
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Save Draft
                 </Button>
-                <Button onClick={handleSubmit} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                  {user?.role === 'coordinator' ? 'Publish Immediately' : 'Submit for Approval'}
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+                      <Send className="mr-2 h-4 w-4" />
+                      {user?.role === 'coordinator' ? 'Publish Immediately' : 'Submit for Approval'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you ready to submit?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will {user?.role === 'coordinator' ? 'publish the event immediately' : 'submit the event for approval'}. You can still edit the details later.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleSubmit}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </div>
@@ -296,10 +323,26 @@ const CreateEvent = () => {
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Draft
             </Button>
-            <Button onClick={handleSubmit} disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              {user?.role === 'coordinator' ? 'Publish Immediately' : 'Submit for Approval'}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button disabled={isLoading} className="bg-gradient-to-r from-primary to-secondary">
+                  <Send className="mr-2 h-4 w-4" />
+                  {user?.role === 'coordinator' ? 'Publish Immediately' : 'Submit for Approval'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you ready to submit?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will {user?.role === 'coordinator' ? 'publish the event immediately' : 'submit the event for approval'}. You can still edit the details later.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSubmit}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </main>
