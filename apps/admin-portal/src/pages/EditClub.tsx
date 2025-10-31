@@ -7,7 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, Upload, Send } from 'lucide-react';
+import { ArrowLeft, Upload, Send, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -155,10 +166,26 @@ const EditClub = () => {
                   </label>
                 </div>
               </div>
-              <Button onClick={handleUpdate} disabled={isLoading} className="w-full bg-gradient-to-r from-primary to-secondary">
-                <Send className="mr-2 h-4 w-4" />
-                {isLoading ? 'Updating...' : 'Update Club Info'}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={isLoading} className="w-full bg-gradient-to-r from-primary to-secondary">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Update Club Info
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Changes</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to update the club information? This will be visible to all club members.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleUpdate}>Update</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>
