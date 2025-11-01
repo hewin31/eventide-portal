@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Home, User, LogOut, GraduationCap, Calendar, CheckSquare, ShieldCheck, LucideIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Home, User, LogOut, GraduationCap, Calendar, CheckSquare, ShieldCheck, LucideIcon, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
@@ -25,13 +25,12 @@ interface NavLink {
   to: string;
   icon: LucideIcon;
   label: string;
-  roles?: ('student' | 'member' | 'coordinator')[];
+  roles?: ('student' | 'member' | 'coordinator' | 'admin')[];
 }
 
 const mainNavLinks: NavLink[] = [
   { to: '/dashboard', icon: Home, label: 'My Clubs' },
-  { to: '/events', icon: Calendar, label: 'All Events' },
-  { to: '/profile', icon: User, label: 'Profile' },
+  { to: '/events', icon: Calendar, label: 'All Events' }
 ];
 
 export const Sidebar = ({ className }: SidebarProps) => {
@@ -61,15 +60,36 @@ export const Sidebar = ({ className }: SidebarProps) => {
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
-        {mainNavLinks.map((link) => (
-          <Link key={link.to} to={link.to} className="block transition-all duration-300">
+        {/* --- START: Role-based Navigation --- */}
+        {user?.role !== 'admin' && mainNavLinks.map((link) => (
+            <Link key={link.to} to={link.to} className="block transition-all duration-300">
+              <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+                <link.icon className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+                {link.label}
+              </Button>
+            </Link>
+          ))}
+        {/* Always show Profile for all users, including admin */}
+        <Link to="/profile" className="block transition-all duration-300">
+          <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+            <User className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+            Profile
+          </Button>
+        </Link>
+        {/* --- END: Role-based Navigation --- */}
+      </nav>
+
+      {user?.role === 'admin' && (
+        <div className="p-4 space-y-2 border-t-2 border-primary/10">
+          <h3 className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin Tools</h3>
+          <Link to="/admin/clubs" className="block transition-all duration-300">
             <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
-              <link.icon className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-              {link.label}
+              <Settings className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              Club Management
             </Button>
           </Link>
-        ))}
-      </nav>
+        </div>
+      )}
 
       {user?.role === 'coordinator' && (
         <div className="p-4 space-y-2 border-t-2 border-primary/10">

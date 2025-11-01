@@ -20,11 +20,19 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      // The login function returns the user object, let's capture it.
+      const loggedInUser = await login(email, password);
       toast.success('Login successful!');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error('Login failed. Please try again.');
+
+      // --- Role-Based Redirect Logic ---
+      // Check the user's role and navigate to the appropriate dashboard.
+      if (loggedInUser.role === 'admin') {
+        navigate('/admin/clubs');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

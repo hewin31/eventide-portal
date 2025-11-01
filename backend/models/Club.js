@@ -11,7 +11,7 @@ const ClubSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'uploads.files'
   },
-  coordinator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  coordinator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 

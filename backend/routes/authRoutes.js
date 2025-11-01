@@ -10,27 +10,31 @@ require('dotenv').config();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body; // Removed 'role' from destructuring
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
-
+    
+    // --- Security Fix ---
+    // Default all new public registrations to 'student' role.
+    const role = 'student';
+    
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword, role });
     await user.save();
 
     // Sign a JWT and return it to auto-login the user
     const token = jwt.sign(
-      { id: user._id, name: user.name, email: user.email, role: user.role },
+      { id: user._id, name: user.name, email: user.email, role: user.role, clubs: user.clubs },
       process.env.JWT_SECRET || 'secretkey',
       { expiresIn: '1d' }
     );
 
     res.status(201).json({
-      token,
+      token, 
       user: { id: user._id, name: user.name, email: user.email, role: user.role, clubs: [] }, // New user has no clubs
     });
   } catch (err) {
@@ -49,7 +53,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { id: user._id, name: user.name, email: user.email, role: user.role },
+      { id: user._id, name: user.name, email: user.email, role: user.role, clubs: user.clubs },
       process.env.JWT_SECRET || 'secretkey',
       { expiresIn: '1d' }
     );

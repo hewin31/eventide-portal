@@ -2,8 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { login as apiLogin, register as apiRegister, getProfile } from "../services/authService";
 import { jwtDecode } from "jwt-decode";
-
-export type UserRole = "member" | "coordinator" | "student";
+export type UserRole = "member" | "coordinator" | "student" | "admin" | "faculty";
 
 export interface Club {
   id: string;
@@ -22,7 +21,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (data: { name: string; email: string; password: string; role: UserRole }) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -73,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.token) {
         localStorage.setItem("token", data.token);
         setUser(data.user);
+        return data.user; // Return the user object on successful login
       } else {
         throw new Error(data.error || "Login failed");
       }

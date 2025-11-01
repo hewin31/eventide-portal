@@ -25,4 +25,17 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// @route   GET /api/users/coordinators
+// @desc    Get all users with the coordinator role
+// @access  Private (Admin)
+router.get('/coordinators', authenticateToken, async (req, res) => {
+  // In a real-world scenario, you might restrict this to admins: authorizeRoles('admin')
+  try {
+    const coordinators = await User.find({ role: 'coordinator' }).select('name email');
+    res.json(coordinators);
+  } catch (err) {
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

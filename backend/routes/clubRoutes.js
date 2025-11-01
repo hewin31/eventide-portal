@@ -4,23 +4,35 @@ const Club = require('../models/Club');
 const User = require('../models/User');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// Create club (coordinator only)
-router.post('/', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
+// Create club (admin only)
+router.post('/', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
-    const { name, description, imageUrl } = req.body;
-    const coordinatorId = req.user.id;
+    const { name, description, imageUrl, coordinatorId } = req.body;
+
+    if (!name || !description) {
+      return res.status(400).json({ error: 'Club name and description are required.' });
+    }
+
+    let coordinator;
+    if (coordinatorId) {
+      coordinator = await User.findOne({ _id: coordinatorId, role: 'coordinator' });
+      if (!coordinator) {
+        return res.status(404).json({ error: 'Coordinator not found or user is not a coordinator.' });
+      }
+    }
 
     const club = new Club({
       name,
       description,
       imageUrl,
       coordinator: coordinatorId,
-      members: [coordinatorId], // Coordinator is always a member
+      members: coordinatorId ? [coordinatorId] : [],
     });
     await club.save();
 
-    // Add the club to the coordinator's user document
-    await User.findByIdAndUpdate(coordinatorId, { $addToSet: { clubs: club._id } });
+    if (coordinator) {
+      await User.findByIdAndUpdate(coordinatorId, { $addToSet: { clubs: club._id } });
+    }
 
     res.status(201).json(club);
   } catch (err) {
@@ -82,6 +94,43 @@ router.put('/:id', authenticateToken, authorizeRoles('coordinator'), async (req,
 
     const updatedClub = await Club.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
     res.json(updatedClub);
+  } catch (err) {
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT /api/clubs/:id/coordinator
+// @desc    Update a club's coordinator
+// @access  Private (Admin only)
+router.put('/:id/coordinator', authenticateToken, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const { coordinatorId } = req.body;
+    const clubId = req.params.id;
+
+    const club = await Club.findById(clubId);
+    if (!club) {
+      return res.status(404).json({ msg: 'Club not found' });
+    }
+
+    const newCoordinator = await User.findOne({ _id: coordinatorId, role: 'coordinator' });
+    if (!newCoordinator) {
+      return res.status(404).json({ msg: 'Coordinator not found or user is not a coordinator.' });
+    }
+
+    const oldCoordinatorId = club.coordinator;
+
+    // Update club
+    club.coordinator = coordinatorId;
+    club.members.addToSet(coordinatorId); // Ensure new coordinator is a member
+    await club.save();
+
+    // Update user club lists
+    if (oldCoordinatorId && oldCoordinatorId.toString() !== coordinatorId) {
+      await User.findByIdAndUpdate(oldCoordinatorId, { $pull: { clubs: clubId } });
+    }
+    await User.findByIdAndUpdate(coordinatorId, { $addToSet: { clubs: clubId } });
+
+    res.json(club);
   } catch (err) {
     res.status(500).send('Server Error');
   }

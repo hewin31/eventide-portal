@@ -17,11 +17,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { ManageMembers } from '@/components/ManageMembers';
 import { API_BASE_URL } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type Coordinator = { _id: string; name: string; };
 
 async function fetchClubDetails(clubId: string, token: string | null) {
   if (!token) throw new Error('Not authenticated');
@@ -42,6 +52,15 @@ async function fetchClubEvents(clubId: string, token: string | null) {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to fetch events');
+  return res.json();
+}
+
+async function fetchCoordinators(token: string | null): Promise<Coordinator[]> {
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetch(`${API_BASE_URL}/api/users/coordinators`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Failed to fetch coordinators");
   return res.json();
 }
 
@@ -117,6 +136,36 @@ const ClubWorkspace = () => {
     },
   });
 
+  const updateCoordinatorMutation = useMutation({
+    mutationFn: async (newCoordinatorId: string) => {
+      const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/coordinator`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ coordinatorId: newCoordinatorId }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ msg: 'An unknown error occurred' }));
+        throw new Error(errorData.msg || 'Failed to update coordinator');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Coordinator updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['club', clubId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleCoordinatorChange = (newCoordinatorId: string) => {
+    updateCoordinatorMutation.mutate(newCoordinatorId);
+  };
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading club...</div>;
   }
@@ -319,7 +368,7 @@ const ClubWorkspace = () => {
                     <CardTitle className="text-2xl">Club Information</CardTitle>
                     <CardDescription>Details about this club</CardDescription>
                   </div>
-                  {user?.role === 'coordinator' && (
+                  {(user?.role === 'coordinator' || user?.role === 'admin') && (
                     <Button variant="outline" onClick={() => navigate(`/club/${clubId}/edit`)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edit Info
@@ -336,21 +385,36 @@ const ClubWorkspace = () => {
                   </div>
                   <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      Coordinators
+                      <Users className="h-5 w-5 text-primary" /> Coordinator
                     </h3>
-                    {club.coordinator ? (
-                      <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      {club.coordinator ? (
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-background">
-                          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <span className="font-medium">{club.coordinator.name}</span>
+                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <Users className="h-5 w-5 text-primary" />
+                            </div>
+                            <span className="font-medium">{club.coordinator.name}</span>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">No coordinator assigned.</p>
-                    )}
+                      ) : (
+                        <p className="text-muted-foreground text-sm">No coordinator assigned.</p>
+                      )}
+                      {user?.role === 'admin' && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">Change Coordinator</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Change Club Coordinator</DialogTitle>
+                            </DialogHeader>
+                            <ChangeCoordinatorForm
+                              currentCoordinatorId={club.coordinator?._id}
+                              onCoordinatorChange={handleCoordinatorChange}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
                   </div>
                   <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
@@ -358,7 +422,7 @@ const ClubWorkspace = () => {
                       Members
                     </h3>
                     <p className="text-muted-foreground mb-4">{club.members?.length || 0} active members</p>
-                    {user?.role === 'coordinator' && (
+                    {(user?.role === 'coordinator' || user?.role === 'admin') && (
                       <Button 
                         variant="outline" 
                         onClick={() => setShowManageMembers(true)}
@@ -382,6 +446,36 @@ const ClubWorkspace = () => {
         clubId={club._id}
         currentMembers={club.members}
       />
+    </div>
+  );
+};
+
+const ChangeCoordinatorForm = ({ currentCoordinatorId, onCoordinatorChange }: { currentCoordinatorId?: string; onCoordinatorChange: (id: string) => void; }) => {
+  const token = localStorage.getItem('token');
+  const [selectedCoordinator, setSelectedCoordinator] = useState(currentCoordinatorId);
+
+  const { data: coordinators, isLoading } = useQuery<Coordinator[]>({
+    queryKey: ['coordinators'],
+    queryFn: () => fetchCoordinators(token),
+  });
+
+  return (
+    <div className="space-y-4 mt-4">
+      <Select onValueChange={setSelectedCoordinator} defaultValue={currentCoordinatorId}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a new coordinator" />
+        </SelectTrigger>
+        <SelectContent>
+          {isLoading ? (
+            <SelectItem value="loading" disabled>Loading...</SelectItem>
+          ) : (
+            coordinators?.map((c) => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)
+          )}
+        </SelectContent>
+      </Select>
+      <Button onClick={() => selectedCoordinator && onCoordinatorChange(selectedCoordinator)} disabled={!selectedCoordinator || selectedCoordinator === currentCoordinatorId} className="w-full">
+        Assign New Coordinator
+      </Button>
     </div>
   );
 };
