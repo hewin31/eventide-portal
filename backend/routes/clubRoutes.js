@@ -25,8 +25,8 @@ router.post('/', authenticateToken, authorizeRoles('admin'), async (req, res) =>
       name,
       description,
       imageUrl,
-      coordinator: coordinatorId,
-      members: coordinatorId ? [coordinatorId] : [],
+      coordinators: coordinatorId ? [coordinatorId] : [],
+      members: coordinatorId ? [coordinatorId] : [], // Also add initial coordinator to members
     });
     await club.save();
 
@@ -45,7 +45,7 @@ router.post('/', authenticateToken, authorizeRoles('admin'), async (req, res) =>
 // @access  Private
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const clubs = await Club.find().populate('coordinator', 'name').sort({ createdAt: -1 });
+    const clubs = await Club.find().populate('coordinators', 'name').sort({ createdAt: -1 });
     res.json(clubs);
   } catch (err) {
     console.error(err.message);
@@ -59,7 +59,7 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const club = await Club.findById(req.params.id)
-      .populate('coordinator', 'name email') // Populate coordinator's name and email
+      .populate('coordinators', 'name email') // Populate coordinators' names and emails
       .populate('members', 'name email role'); // Populate members' name, email, and role
 
     if (!club) {
@@ -78,18 +78,17 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
 // @route   PUT /api/clubs/:id
 // @desc    Update club details
-// @access  Private (Coordinator only)
-router.put('/:id', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
+// @access  Private (Admin or Club Coordinator)
+router.put('/:id', authenticateToken, authorizeRoles('admin', 'coordinator'), async (req, res) => {
   try {
     const club = await Club.findById(req.params.id);
 
     if (!club) {
       return res.status(404).json({ msg: 'Club not found' });
     }
-
-    // Ensure the user is the coordinator of this club
-    if (club.coordinator.toString() !== req.user.id) {
-      return res.status(403).json({ msg: 'User not authorized' });
+    // Allow if user is an admin OR the coordinator of this specific club
+    if (req.user.role !== 'admin' && !club.coordinators.some(c => c.toString() === req.user.id)) {
+      return res.status(403).json({ msg: 'User not authorized to edit this club' });
     }
 
     const updatedClub = await Club.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
@@ -99,36 +98,57 @@ router.put('/:id', authenticateToken, authorizeRoles('coordinator'), async (req,
   }
 });
 
-// @route   PUT /api/clubs/:id/coordinator
-// @desc    Update a club's coordinator
+// @route   POST /api/clubs/:id/coordinators
+// @desc    Add a coordinator to a club
 // @access  Private (Admin only)
-router.put('/:id/coordinator', authenticateToken, authorizeRoles('admin'), async (req, res) => {
+router.post('/:id/coordinators', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
     const { coordinatorId } = req.body;
     const clubId = req.params.id;
-
-    const club = await Club.findById(clubId);
-    if (!club) {
-      return res.status(404).json({ msg: 'Club not found' });
-    }
 
     const newCoordinator = await User.findOne({ _id: coordinatorId, role: 'coordinator' });
     if (!newCoordinator) {
       return res.status(404).json({ msg: 'Coordinator not found or user is not a coordinator.' });
     }
 
-    const oldCoordinatorId = club.coordinator;
+    const club = await Club.findByIdAndUpdate(
+      clubId,
+      { 
+        $addToSet: { 
+          coordinators: coordinatorId,
+          members: coordinatorId // Also ensure they are a member
+        } 
+      },
+      { new: true }
+    ).populate('coordinators', 'name email');
 
-    // Update club
-    club.coordinator = coordinatorId;
-    club.members.addToSet(coordinatorId); // Ensure new coordinator is a member
-    await club.save();
+    if (!club) return res.status(404).json({ msg: 'Club not found' });
 
-    // Update user club lists
-    if (oldCoordinatorId && oldCoordinatorId.toString() !== coordinatorId) {
-      await User.findByIdAndUpdate(oldCoordinatorId, { $pull: { clubs: clubId } });
-    }
     await User.findByIdAndUpdate(coordinatorId, { $addToSet: { clubs: clubId } });
+
+    res.json(club);
+  } catch (err) {
+    res.status(500).send('Server Error: ' + err.message);
+  }
+});
+
+// @route   DELETE /api/clubs/:id/coordinators/:coordinatorId
+// @desc    Remove a coordinator from a club
+// @access  Private (Admin only)
+router.delete('/:id/coordinators/:coordinatorId', authenticateToken, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const { id: clubId, coordinatorId } = req.params;
+
+    const club = await Club.findByIdAndUpdate(
+      clubId,
+      { $pull: { coordinators: coordinatorId } },
+      { new: true }
+    ).populate('coordinators', 'name email');
+
+    if (!club) return res.status(404).json({ msg: 'Club not found' });
+
+    // We don't remove the club from the user's club list, as they might still be a member.
+    // This can be adjusted if business logic requires it.
 
     res.json(club);
   } catch (err) {

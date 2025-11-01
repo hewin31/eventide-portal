@@ -136,10 +136,10 @@ const ClubWorkspace = () => {
     },
   });
 
-  const updateCoordinatorMutation = useMutation({
+  const addCoordinatorMutation = useMutation({
     mutationFn: async (newCoordinatorId: string) => {
-      const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/coordinator`, {
-        method: 'PUT',
+      const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/coordinators`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -155,7 +155,7 @@ const ClubWorkspace = () => {
       return res.json();
     },
     onSuccess: () => {
-      toast.success('Coordinator updated successfully!');
+      toast.success('Coordinator added successfully!');
       queryClient.invalidateQueries({ queryKey: ['club', clubId] });
     },
     onError: (error: Error) => {
@@ -163,8 +163,29 @@ const ClubWorkspace = () => {
     },
   });
 
-  const handleCoordinatorChange = (newCoordinatorId: string) => {
-    updateCoordinatorMutation.mutate(newCoordinatorId);
+  const removeCoordinatorMutation = useMutation({
+    mutationFn: async (coordinatorIdToRemove: string) => {
+      const res = await fetch(`${API_BASE_URL}/api/clubs/${clubId}/coordinators/${coordinatorIdToRemove}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ msg: 'An unknown error occurred' }));
+        throw new Error(errorData.msg || 'Failed to remove coordinator');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Coordinator removed successfully!');
+      queryClient.invalidateQueries({ queryKey: ['club', clubId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleAddCoordinator = (newCoordinatorId: string) => {
+    addCoordinatorMutation.mutate(newCoordinatorId);
   };
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading club...</div>;
@@ -186,8 +207,8 @@ const ClubWorkspace = () => {
       <Sidebar />
       <main className="flex-1 p-8 transition-all duration-300">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8 animate-slideInRight">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-6 hover:bg-primary/10 transition-all duration-300 font-inter">
+          <div className="mb-8">
+            <Button variant="ghost" onClick={() => navigate(user?.role === 'admin' ? '/admin/clubs' : '/dashboard')} className="mb-6 hover:bg-primary/10 transition-all duration-300 font-inter">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Clubs
             </Button>
@@ -228,8 +249,8 @@ const ClubWorkspace = () => {
             <TabsContent value="events" className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold">Club Events</h2>
-                {/* Show button if user is a member of this specific club (this includes the coordinator) */}
-                {club.members.some((member: any) => member._id === user?.id) && (
+                {/* Show Create Event button only to club members/coordinators, NOT admins */}
+                {user?.role !== 'admin' && club.members.some((member: any) => member._id === user?.id) && (
                   <Button 
                     onClick={() => navigate(`/club/${clubId}/create-event`)}
                     className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-md hover:shadow-xl transition-all duration-300"
@@ -293,8 +314,8 @@ const ClubWorkspace = () => {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-0 flex items-center gap-4">
-                          {/* Only show Manage/Delete buttons to the event creator or the club coordinator */}
-                          {(user?._id === event.createdBy || user?._id === club.coordinator?._id) ? (
+                          {/* Admin sees only "View Details". Others see management buttons. */}
+                          {user?.role !== 'admin' && (user?._id === event.createdBy || club.coordinators?.some((c: any) => c._id === user?._id)) ? (
                             <>
                               <Button 
                                 onClick={() => navigate(`/club/${clubId}/event/${event._id}/edit`)}
@@ -330,7 +351,7 @@ const ClubWorkspace = () => {
                           ) : (
                             <Button onClick={() => navigate(`/club/${clubId}/event/${event._id}`)}>View Details</Button>
                           )}
-                          {user?.role === 'coordinator' && event.status === 'pending' && (
+                          {user?.role === 'coordinator' && event.status === 'pending' && ( // Only coordinators see approval buttons
                             <>
                               <Button 
                                 variant="outline"
@@ -386,35 +407,61 @@ const ClubWorkspace = () => {
                   <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" /> Coordinator
+                      {club.coordinators?.length > 1 ? 's' : ''}
                     </h3>
-                    <div className="flex items-center justify-between">
-                      {club.coordinator ? (
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-background">
-                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                              <Users className="h-5 w-5 text-primary" />
+                    {club.coordinators && club.coordinators.length > 0 ? (
+                      <div className="space-y-3">
+                        {club.coordinators.map((coordinator: any) => (
+                          <div key={coordinator._id} className="flex items-center justify-between p-3 rounded-lg bg-background">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                <Users className="h-5 w-5 text-primary" />
+                              </div>
+                              <span className="font-medium">{coordinator.name}</span>
                             </div>
-                            <span className="font-medium">{club.coordinator.name}</span>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">No coordinator assigned.</p>
-                      )}
-                      {user?.role === 'admin' && (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline">Change Coordinator</Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Change Club Coordinator</DialogTitle>
-                            </DialogHeader>
-                            <ChangeCoordinatorForm
-                              currentCoordinatorId={club.coordinator?._id}
-                              onCoordinatorChange={handleCoordinatorChange}
-                            />
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                    </div>
+                            {user?.role === 'admin' && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="sm" disabled={removeCoordinatorMutation.isPending}>
+                                    Remove
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove {coordinator.name}?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will remove their coordinator privileges for this club. Are you sure?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => removeCoordinatorMutation.mutate(coordinator._id)}>
+                                      Confirm Removal
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">No coordinators assigned.</p>
+                    )}
+                    {/* --- Admin-specific Coordinator Management --- */}
+                    {user?.role === 'admin' && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="mt-4 w-full">
+                            <Plus className="mr-2 h-4 w-4" /> Add Coordinator
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader><DialogTitle>Add a New Coordinator</DialogTitle></DialogHeader>
+                          <AddCoordinatorForm existingCoordinators={club.coordinators || []} onAddCoordinator={handleAddCoordinator} />
+                        </DialogContent>
+                      </Dialog>
+                    )}
                   </div>
                   <div className="p-4 rounded-lg bg-muted">
                     <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
@@ -450,31 +497,35 @@ const ClubWorkspace = () => {
   );
 };
 
-const ChangeCoordinatorForm = ({ currentCoordinatorId, onCoordinatorChange }: { currentCoordinatorId?: string; onCoordinatorChange: (id: string) => void; }) => {
+const AddCoordinatorForm = ({ existingCoordinators, onAddCoordinator }: { existingCoordinators: Coordinator[]; onAddCoordinator: (id: string) => void; }) => {
   const token = localStorage.getItem('token');
-  const [selectedCoordinator, setSelectedCoordinator] = useState(currentCoordinatorId);
+  const [selectedCoordinator, setSelectedCoordinator] = useState<string | undefined>();
 
   const { data: coordinators, isLoading } = useQuery<Coordinator[]>({
     queryKey: ['coordinators'],
     queryFn: () => fetchCoordinators(token),
   });
 
+  // Filter out users who are already coordinators for this club
+  const availableCoordinators = coordinators?.filter(c => !existingCoordinators.some(ec => ec._id === c._id));
+
   return (
     <div className="space-y-4 mt-4">
-      <Select onValueChange={setSelectedCoordinator} defaultValue={currentCoordinatorId}>
+      <Select onValueChange={setSelectedCoordinator}>
         <SelectTrigger>
-          <SelectValue placeholder="Select a new coordinator" />
+          <SelectValue placeholder="Select a user to make coordinator" />
         </SelectTrigger>
         <SelectContent>
           {isLoading ? (
             <SelectItem value="loading" disabled>Loading...</SelectItem>
-          ) : (
-            coordinators?.map((c) => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)
-          )}
+          ) : availableCoordinators && availableCoordinators.length > 0 ? (
+            availableCoordinators.map((c) => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)
+          ) : <p className="p-4 text-sm text-muted-foreground">No available coordinators found.</p>
+          }
         </SelectContent>
       </Select>
-      <Button onClick={() => selectedCoordinator && onCoordinatorChange(selectedCoordinator)} disabled={!selectedCoordinator || selectedCoordinator === currentCoordinatorId} className="w-full">
-        Assign New Coordinator
+      <Button onClick={() => selectedCoordinator && onAddCoordinator(selectedCoordinator)} disabled={!selectedCoordinator} className="w-full">
+        Add Coordinator
       </Button>
     </div>
   );

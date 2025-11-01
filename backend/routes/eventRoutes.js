@@ -66,7 +66,7 @@ router.delete('/:id', authenticateToken, authorizeRoles('member', 'coordinator')
     const club = await Club.findById(event.club);
     if (!club) return res.status(404).json({ error: 'Associated club not found' });
 
-    const isCoordinator = club.coordinator?._id?.toString() === req.user.id;
+    const isCoordinator = club.coordinators?.some(c => c.toString() === req.user.id);
     const isClubMember = club.members?.some(memberId => memberId.toString() === req.user.id);
 
     if (!isCoordinator && !isClubMember)
@@ -95,7 +95,7 @@ router.put('/:id', authenticateToken, authorizeRoles('member', 'coordinator'), a
     const club = await Club.findById(event.club);
     if (!club) return res.status(404).json({ error: 'Associated club not found' });
 
-    const isCoordinator = club.coordinator?._id?.toString() === req.user.id;
+    const isCoordinator = club.coordinators?.some(c => c.toString() === req.user.id);
     const isClubMember = club.members?.some(memberId => memberId.toString() === req.user.id);
     if (!isCoordinator && !isClubMember)
       return res.status(403).json({ error: 'User not authorized to update this event' });
@@ -150,7 +150,7 @@ router.get('/pending-approvals', authenticateToken, authorizeRoles('coordinator'
     const coordinatorId = req.user.id;
 
     // 1. Find all clubs managed by this coordinator
-    const clubs = await Club.find({ coordinator: coordinatorId }).select('_id');
+    const clubs = await Club.find({ coordinators: coordinatorId }).select('_id');
     const clubIds = clubs.map(club => club._id);
 
     if (clubIds.length === 0) {
