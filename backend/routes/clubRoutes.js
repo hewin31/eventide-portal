@@ -204,4 +204,29 @@ router.delete('/:id/members/:memberId', authenticateToken, authorizeRoles('coord
   }
 });
 
+// @route   DELETE /api/clubs/:id
+// @desc    Delete a club
+// @access  Private (Admin only)
+router.delete('/:id', authenticateToken, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const clubId = req.params.id;
+
+    const club = await Club.findById(clubId);
+    if (!club) {
+      return res.status(404).json({ msg: 'Club not found' });
+    }
+
+    // Remove the club reference from all users (members and coordinators)
+    await User.updateMany({ clubs: clubId }, { $pull: { clubs: clubId } });
+
+    // Note: This does not delete associated events. You might want to add that logic.
+
+    await Club.findByIdAndDelete(clubId);
+
+    res.json({ msg: 'Club and all member associations removed' });
+  } catch (err) {
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;
