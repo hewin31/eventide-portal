@@ -202,6 +202,11 @@ const ClubWorkspace = () => {
     );
   }
 
+  // Filter out coordinators from the members list to show only regular members
+  const regularMembers = club.members?.filter(
+    (member: any) => !club.coordinators.some((coordinator: any) => coordinator._id === member._id)
+  ) || [];
+
   return (
     <div className="flex min-h-screen w-full bg-background transition-colors duration-300">
       <Sidebar />
@@ -468,7 +473,7 @@ const ClubWorkspace = () => {
                       <Users className="h-5 w-5 text-primary" />
                       Members
                     </h3>
-                    <p className="text-muted-foreground mb-4">{club.members?.length || 0} active members</p>
+                    <p className="text-muted-foreground mb-4">{regularMembers.length || 0} active members</p>
                     {(user?.role === 'coordinator' || user?.role === 'admin') && (
                       <Button 
                         variant="outline" 
@@ -491,7 +496,7 @@ const ClubWorkspace = () => {
         onOpenChange={setShowManageMembers}
         clubName={club.name}
         clubId={club._id}
-        currentMembers={club.members}
+        currentMembers={regularMembers}
       />
     </div>
   );

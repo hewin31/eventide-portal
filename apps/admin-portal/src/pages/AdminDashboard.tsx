@@ -18,15 +18,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Building, Trash2 } from 'lucide-react';
+import { Plus, Building, Trash2, Calendar } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface Club {
   _id: string;
   name: string;
+  imageUrl?: string;
   description: string;
-  coordinator?: { name: string };
+  coordinators: { name: string }[];
 }
 
 interface Coordinator {
@@ -180,17 +181,30 @@ const AdminDashboard = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {clubs?.map((club) => (
-            <Card key={club._id} className="hover:shadow-lg transition-shadow flex flex-col">
-              <CardHeader className="cursor-pointer" onClick={() => navigate(`/club/${club._id}`)}>
-                <CardTitle className="flex items-center gap-3">
-                  <Building className="h-6 w-6 text-primary" />
-                  {club.name}
-                </CardTitle>
+            <Card key={club._id} className="overflow-hidden transition-all duration-300 ease-out hover:shadow-2xl hover:-translate-y-2 group flex flex-col">
+              <div className="relative h-48 overflow-hidden cursor-pointer" onClick={() => navigate(`/club/${club._id}`)}>
+                {club.imageUrl ? (
+                  <img src={`${API_BASE_URL}/api/images/${club.imageUrl}`} alt={club.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+                    <Building className="h-16 w-16 text-primary opacity-40" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <h2 className="absolute bottom-4 left-4 text-2xl font-bold text-white drop-shadow-lg">{club.name}</h2>
+              </div>
+              <CardHeader>
+                {/* Title is now in the image overlay */}
               </CardHeader>
-              <CardContent className="flex-grow cursor-pointer" onClick={() => navigate(`/club/${club._id}`)}>
+              <CardContent className="flex-grow cursor-pointer -mt-6" onClick={() => navigate(`/club/${club._id}`)}>
                 <p className="text-muted-foreground line-clamp-2">{club.description}</p>
                 <p className="text-sm text-muted-foreground mt-4">
-                  Coordinator: <span className="font-semibold">{club.coordinator?.name || 'Not Assigned'}</span>
+                  Coordinator{club.coordinators?.length > 1 ? 's' : ''}:{' '}
+                  <span className="font-semibold">
+                    {club.coordinators && club.coordinators.length > 0
+                      ? club.coordinators.map((c) => c.name).join(', ')
+                      : 'Not Assigned'}
+                  </span>
                 </p>
               </CardContent>
               <div className="p-4 pt-0 mt-auto">
