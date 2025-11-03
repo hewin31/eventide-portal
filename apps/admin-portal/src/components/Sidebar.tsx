@@ -44,7 +44,7 @@ export const Sidebar = ({ className }: SidebarProps) => {
   };
 
   return (
-    <aside className={cn("w-64 bg-card/80 backdrop-blur-md border-r-2 border-primary/10 flex flex-col transition-all duration-300 hover:shadow-lg", className)}>
+    <aside className={cn("w-64 bg-card/80 backdrop-blur-md border-r-2 border-primary/10 flex flex-col transition-all duration-300 h-screen sticky top-0", className)}>
       <div className="p-6 border-b-2 border-primary/10 transition-all duration-300">
         <div className="flex items-center justify-between mb-2 animate-slideDown">
           <div className="flex items-center gap-2">

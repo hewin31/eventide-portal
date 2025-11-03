@@ -23,12 +23,20 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <Routes>
       {/* Default redirect based on role */}
-      <Route path="/" element={<Navigate to={user?.role === 'admin' ? '/admin/clubs' : '/dashboard'} replace />} />
+      <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin/clubs' : '/dashboard') : '/login'} replace />} />
 
       {/* Auth routes */}
       <Route path="/login" element={<Login />} />
