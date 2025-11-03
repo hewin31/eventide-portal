@@ -34,6 +34,7 @@ interface SearchResult {
   name: string;
   email: string;
   department?: string;
+  role: string;
   year?: string;
 }
 
@@ -66,7 +67,15 @@ export function ManageMembers({ open, onOpenChange, clubName, clubId, currentMem
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const users = await res.json();
-      setSearchResults(users);
+      // Filter out users who are already members of the club.
+      const currentMemberIds = new Set(currentMembers.map(member => member._id));
+      const filteredUsers = users.filter((user: SearchResult) => {
+        const isAlreadyMember = currentMemberIds.has(user._id);
+        const isCoordinator = user.role === 'coordinator';
+        return !isAlreadyMember && !isCoordinator;
+      });
+
+      setSearchResults(filteredUsers);
     } else {
       setSearchResults([]);
     }

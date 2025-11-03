@@ -18,7 +18,7 @@ router.get('/', authenticateToken, async (req, res) => {
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ]
-    }).select('name email').limit(10);
+    }).select('name email role').limit(10);
     res.json(users);
   } catch (err) {
     res.status(500).send('Server Error');

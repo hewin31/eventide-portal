@@ -141,15 +141,16 @@ router.delete('/:id/coordinators/:coordinatorId', authenticateToken, authorizeRo
 
     const club = await Club.findByIdAndUpdate(
       clubId,
-      { $pull: { coordinators: coordinatorId } },
+      // When removing a coordinator, also remove them from the members list.
+      { $pull: { coordinators: coordinatorId, members: coordinatorId } },
       { new: true }
     ).populate('coordinators', 'name email');
 
     if (!club) return res.status(404).json({ msg: 'Club not found' });
 
-    // We don't remove the club from the user's club list, as they might still be a member.
-    // This can be adjusted if business logic requires it.
-
+    // Since they are no longer part of the club, remove the club from their user profile.
+    await User.findByIdAndUpdate(coordinatorId, { $pull: { clubs: clubId } });
+    
     res.json(club);
   } catch (err) {
     res.status(500).send('Server Error');
