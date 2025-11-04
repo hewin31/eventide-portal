@@ -39,6 +39,44 @@ router.get('/coordinators', authenticateToken, authorizeRoles('admin'), async (r
   }
 });
 
+// @route   GET /api/users/all
+// @desc    Get all users with pagination and search
+// @access  Private (Admin)
+router.get('/all', authenticateToken, authorizeRoles('admin'), async (req, res) => {
+  const { search, page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
+
+  try {
+    // Base filter to exclude admins and coordinators
+    const baseFilter = { role: { $nin: ['admin', 'coordinator'] } };
+
+    const query = search
+      ? {
+          $and: [
+            baseFilter,
+            {
+              $or: [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+              ],
+            },
+          ],
+        }
+      : baseFilter;
+
+    const users = await User.find(query)
+      .select('-password')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ name: 1 });
+
+    const totalUsers = await User.countDocuments(query);
+    res.json({ users, totalUsers, currentPage: parseInt(page), limit: parseInt(limit) });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error while fetching users.' });
+  }
+});
+
 // @route   POST /api/users
 // @desc    Create a new user (for admins)
 // @access  Private (Admin)

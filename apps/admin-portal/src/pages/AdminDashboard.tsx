@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Building, Trash2, Calendar } from 'lucide-react';
+import { Plus, Building, Trash2, Calendar, Users } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -162,6 +162,10 @@ const AdminDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Club Management</h1>
           <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+             <Button variant="outline" onClick={() => navigate('/admin/users')}>
+              <Users className="mr-2 h-4 w-4" />
+              Manage Users
+            </Button>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Create New Club
