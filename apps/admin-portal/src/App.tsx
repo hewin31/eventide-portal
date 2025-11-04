@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import EventApprovalsPage from "./pages/EventApprovalsPage";
 import ODManagementPage from "./pages/ODManagementPage";
 import AdminDashboard from "./pages/AdminDashboard"; // Import the new admin page
+import CoordinatorManagement from "./pages/CoordinatorManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/coordinators"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <CoordinatorManagement />
           </ProtectedRoute>
         }
       />
