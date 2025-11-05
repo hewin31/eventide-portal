@@ -19,6 +19,8 @@ import EventApprovalsPage from "./pages/EventApprovalsPage";
 import ODManagementPage from "./pages/ODManagementPage";
 import AdminDashboard from "./pages/AdminDashboard"; // Import the new admin page
 import CoordinatorManagement from "./pages/CoordinatorManagement";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
+import AnnouncementManagement from "./pages/AnnouncementManagement";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
@@ -82,6 +84,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/announcements"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AnnouncementManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements"
+        element={
+          <ProtectedRoute allowedRoles={['student', 'member', 'coordinator']}>
+            <AnnouncementsPage />
           </ProtectedRoute>
         }
       />
