@@ -102,6 +102,31 @@ const EventManagement = () => {
     updateOdStatusMutation.mutate({ attendanceId, odStatus: status });
   };
 
+  const handleExportList = () => {
+    if (!registrationData || !registrationData.attendance || registrationData.attendance.length === 0) {
+      toast.info("No registered participants to export.");
+      return;
+    }
+
+    const headers = ["Name", "Email", "Registered At"];
+    const csvRows = registrationData.attendance.map((att: any) => {
+      const name = `"${att.student.name.replace(/"/g, '""')}"`; // Escape double quotes
+      const email = `"${att.student.email.replace(/"/g, '""')}"`;
+      const registeredAt = `"${new Date(att.createdAt).toLocaleString().replace(/"/g, '""')}"`;
+      return [name, email, registeredAt].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `${event.name}_registrations.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Exported registered participants list.");
+  };
+
   if (isLoadingEvent) {
     return <div className="flex min-h-screen items-center justify-center">Loading Event...</div>;
   }
@@ -206,7 +231,7 @@ const EventManagement = () => {
                       <CardTitle>Registered Participants</CardTitle>
                       <CardDescription>{registrationData?.registeredStudents?.length || 0} participants registered</CardDescription>
                     </div>
-                    <Button variant="outline">Export List</Button>
+                    <Button variant="outline" onClick={handleExportList}>Export List</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
