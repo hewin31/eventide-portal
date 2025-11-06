@@ -31,8 +31,8 @@ const AnnouncementsPage = () => {
   });
 
   useEffect(() => {
-    if (user && announcements && announcements.length > 0) {
-      // When the user visits this page, mark all current announcements as "read"
+    // When a non-admin user visits this page, mark all current announcements as "read"
+    if (user && user.role !== 'admin' && announcements && announcements.length > 0) {
       // by storing the timestamp of the newest announcement for this specific user.
       const latestTimestamp = new Date(announcements[0].createdAt).getTime();
       const userReadTimestampKey = `lastReadAnnouncementTimestamp_${user.id}`;

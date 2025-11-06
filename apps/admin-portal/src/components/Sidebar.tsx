@@ -59,7 +59,7 @@ export const Sidebar = ({ className }: SidebarProps) => {
   });
 
   useEffect(() => {
-    if (user && announcements && announcements.length > 0) {
+    if (user && user.role !== 'admin' && announcements && announcements.length > 0) {
       const userReadTimestampKey = `lastReadAnnouncementTimestamp_${user.id}`;
       const lastReadTimestamp = parseInt(localStorage.getItem(userReadTimestampKey) || '0', 10);
       const newUnreadCount = announcements.filter(
@@ -106,7 +106,7 @@ export const Sidebar = ({ className }: SidebarProps) => {
             <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
               <Megaphone className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
               Announcements
-              {unreadCount > 0 && <Badge className="ml-auto bg-accent text-accent-foreground">{unreadCount}</Badge>}
+              {user?.role !== 'admin' && unreadCount > 0 && <Badge className="ml-auto bg-accent text-accent-foreground">{unreadCount}</Badge>}
             </Button>
           </Link>
         )}

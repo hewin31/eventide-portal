@@ -162,10 +162,6 @@ const AdminDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Club Management</h1>
           <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
-             <Button variant="outline" onClick={() => navigate('/admin/users')}>
-              <Users className="mr-2 h-4 w-4" />
-              Manage Users
-            </Button>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Create New Club
