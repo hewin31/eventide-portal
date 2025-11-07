@@ -4,6 +4,10 @@ const Attendance = require('../models/Attendance');
 const Event = require('../models/Event');
 const Club = require('../models/Club');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const puppeteer = require('puppeteer');
+
+const debug = require('debug')('app:attendanceRoutes');
+
 
 // @route   POST /api/attendance/check-in
 // @desc    Mark attendance by scanning a QR code
@@ -148,6 +152,214 @@ router.get('/my-od-requests', authenticateToken, authorizeRoles('student'), asyn
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: 'Server Error' });
+  }
+});
+
+// Helper function to generate the HTML for a certificate with un-escaped tags
+function generateCertificateHtml(studentName, eventName, eventDate) {
+  return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <title>Certificate</title>
+      <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Great+Vibes&display=swap');
+
+          @page {
+              size: A4 landscape;
+              margin: 0;
+          }
+
+          body {
+              font-family: 'Cinzel', serif;
+              margin: 0;
+              width: 297mm;
+              height: 210mm;
+              background: #f7f5ef;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+          }
+
+          .certificate-container {
+              width: 270mm;
+              height: 185mm;
+              background: white;
+              border: 8px solid #d4af37;
+              position: relative;
+              padding: 18mm 15mm;
+              box-sizing: border-box;
+          }
+
+          .inner-border {
+              border: 3px solid #d4af37;
+              position: absolute;
+              top: 12mm;
+              bottom: 12mm;
+              left: 12mm;
+              right: 12mm;
+              pointer-events: none;
+          }
+
+          .watermark {
+              position: absolute;
+              font-size: 75px;
+              font-weight: bold;
+              color: rgba(0,0,0,0.03);
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-12deg);
+              letter-spacing: 8px;
+          }
+
+          .header {
+              font-size: 2.8em;
+              color: #b8860b;
+              text-align: center;
+              margin-top: 0;
+              margin-bottom: 8px;
+              letter-spacing: 1px;
+          }
+
+          .sub-header {
+              font-size: 1.1em;
+              text-align: center;
+              color: #444;
+              letter-spacing: 2px;
+              margin-bottom: 25px;
+          }
+
+          .content {
+              text-align: center;
+              color: #444;
+              margin-top: 0;
+          }
+
+          .name-text {
+              font-family: 'Great Vibes', cursive;
+              font-size: 4.2em;
+              margin: 10px 0 15px;
+              color: #000;
+          }
+
+          .event-text {
+              font-size: 1.6em;
+              font-weight: bold;
+              color: #1a3b4c;
+              margin-top: 10px;
+          }
+
+          .date-text {
+              margin-top: 10px;
+              font-size: 1.1em;
+              color: #555;
+          }
+
+          .footer {
+              width: 80%;
+              position: absolute;
+              bottom: 25mm;
+              left: 50%;
+              transform: translateX(-50%);
+              display: flex;
+              justify-content: space-between;
+          }
+
+          .signature-block {
+              width: 180px;
+              text-align: center;
+              font-size: 0.95em;
+          }
+
+          .signature-line {
+              border-top: 2px solid #000;
+              margin: 0 auto 5px;
+              width: 150px;
+          }
+
+      </style>
+  </head>
+
+  <body>
+      <div class="certificate-container">
+          <div class="inner-border"></div>
+
+          <div class="watermark">CERTIFICATE</div>
+
+          <div class="header">CERTIFICATE OF PARTICIPATION</div>
+          <div class="sub-header">This is proudly presented to</div>
+
+          <div class="content">
+              <div class="name-text">${studentName}</div>
+              for attending the event
+              <div class="event-text">"${eventName}"</div>
+              <div class="date-text">Conducted on ${eventDate}</div>
+          </div>
+
+          <div class="footer">
+              <div class="signature-block">
+                  <div class="signature-line"></div>
+                  COORDINATOR
+              </div>
+
+              <div class="signature-block">
+                  <div class="signature-line"></div>
+                  HEAD OF DEPARTMENT
+              </div>
+          </div>
+
+      </div>
+  </body>
+  </html>`;
+}
+
+ 
+router.get('/:attendanceId/od-certificate', authenticateToken, authorizeRoles('student'), async (req, res) => {
+  let browser;
+  try {
+    const { attendanceId } = req.params;
+    const studentId = req.user.id;
+
+    const attendance = await Attendance.findById(attendanceId)
+      .populate('student', 'name')
+      .populate('event', 'name startDateTime');
+
+    if (!attendance) {
+      return res.status(404).json({ message: 'Attendance record not found.' });
+    }
+
+    if (attendance.student._id.toString() !== studentId) {
+      return res.status(403).json({ message: 'You are not authorized to download this certificate.' });
+    }
+
+    if (attendance.odStatus !== 'approved') {
+      return res.status(403).json({ message: 'Your OD request for this event has not been approved.' });
+    }
+
+    const studentName = attendance.student.name;
+    const eventName = attendance.event.name;
+    const eventDate = new Date(attendance.event.startDateTime).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+
+    const htmlContent = generateCertificateHtml(studentName, eventName, eventDate);
+
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({ format: 'A4', landscape: true, printBackground: true, margin: { top: '0', right: '0', bottom: '0', left: '0' } });
+
+    const filename = `OD_Certificate_${eventName.replace(/\s/g, '_')}.pdf`;
+    res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-type', 'application/pdf');
+    res.send(pdfBuffer);
+  } catch (error) {
+    debug('Failed to generate OD certificate:', error);
+    if (!res.headersSent) res.status(500).json({ message: 'An error occurred while generating the certificate.' });
+  } finally {
+    if (browser) await browser.close();
   }
 });
 

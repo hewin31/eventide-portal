@@ -6,6 +6,9 @@ const EventInteraction = require('../models/EventInteraction');
 const Club = require('../models/Club');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { generateEventQRCode } = require('../services/qrService'); // Correctly imported
+const puppeteer = require('puppeteer');
+const archiver = require('archiver');
+
 
 const debug = require('debug')('app:eventRoutes');
 
