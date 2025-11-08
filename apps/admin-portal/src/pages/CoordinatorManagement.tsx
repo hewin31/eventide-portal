@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ const CoordinatorForm = ({
   const [email, setEmail] = useState(editingCoordinator?.email || '');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState(editingCoordinator?.role || 'coordinator');
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
 
   const token = localStorage.getItem('token');
   const queryClient = useQueryClient();
@@ -81,21 +82,33 @@ const CoordinatorForm = ({
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name || !email || (!editingCoordinator && !password)) {
       toast.error('All fields are required.');
       return;
     }
+
     const payload: Partial<Coordinator> & { password?: string } = { name, email, role };
     if (password) {
       payload.password = password;
     }
+
+    if (editingCoordinator) {
+      setConfirmOpen(true);
+    } else {
+      coordinatorMutation.mutate(payload);
+    }
+  };
+
+  const handleConfirmUpdate = () => {
+    const payload: Partial<Coordinator> & { password?: string } = { name, email, role };
+    if (password) payload.password = password;
     coordinatorMutation.mutate(payload);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <Input placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} required />
       <Input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} required />
       <Input type="password" placeholder={editingCoordinator ? 'New Password (optional)' : 'Password'} onChange={(e) => setPassword(e.target.value)} />
@@ -113,6 +126,21 @@ const CoordinatorForm = ({
       <Button type="submit" disabled={coordinatorMutation.isPending} className="w-full">
         {coordinatorMutation.isPending ? 'Saving...' : editingCoordinator ? 'Update Coordinator' : 'Create Coordinator'}
       </Button>
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Update</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to update the details for <strong>{editingCoordinator?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmUpdate}>Update</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 };
