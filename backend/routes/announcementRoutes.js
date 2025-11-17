@@ -5,13 +5,21 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // @route   GET /api/announcements/active
 // @desc    Get the currently active announcement
-// @access  Public (or Private, depending on your app's auth requirements)
+// @access  Private
 router.get('/active', authenticateToken, async (req, res) => {
   try {
     const now = new Date();
+    // Find the highest priority announcement that is currently active.
     const activeAnnouncement = await Announcement.findOne({
-      $or: [{ expiryDate: null }, { expiryDate: { $gt: now } }],
-    }).sort({ createdAt: -1 });
+      publishDate: { $lte: now }, // Must be published
+      $or: [
+        { expiryDate: null }, // Or has no expiry date
+        { expiryDate: { $gt: now } } // Or has not expired yet
+      ],
+    })
+    // Sort by priority first (desc), then by creation date (desc)
+    // Mongoose can sort by enum order if they are defined alphabetically, but we want Critical > Important > Normal.
+    .sort({ priority: -1, publishDate: -1 });
 
     res.json(activeAnnouncement);
   } catch (err) {
@@ -24,7 +32,14 @@ router.get('/active', authenticateToken, async (req, res) => {
 // @access  Private (Admin)
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const announcements = await Announcement.find().populate('createdBy', 'name').sort({ createdAt: -1 });
+    const now = new Date();
+    let query = Announcement.find();
+
+    // Admins can see all announcements (including scheduled), others see only published ones.
+    if (req.user.role !== 'admin') {
+      query = query.where('publishDate').lte(now);
+    }
+    const announcements = await query.populate('createdBy', 'name').sort({ createdAt: -1 });
     res.json(announcements);
   } catch (err) {
     res.status(500).send('Server Error');
@@ -35,17 +50,21 @@ router.get('/', authenticateToken, async (req, res) => {
 // @desc    Create a new announcement
 // @access  Private (Admin)
 router.post('/', authenticateToken, authorizeRoles('admin'), async (req, res) => {
-  const { message, expiryDate } = req.body;
+  const { message, expiryDate, publishDate, priority } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: 'Message is required.' });
   }
 
   try {
+    // If publishDate is not provided, it will default to Date.now() via the schema.
+    // If expiryDate is an empty string or falsy, it should be stored as null.
     const newAnnouncement = new Announcement({
       message,
       expiryDate: expiryDate || null,
       createdBy: req.user.id,
+      publishDate: publishDate || undefined, // Let schema default apply if not provided
+      priority: priority || 'Normal',
     });
 
     const announcement = await newAnnouncement.save();
@@ -59,7 +78,7 @@ router.post('/', authenticateToken, authorizeRoles('admin'), async (req, res) =>
 // @desc    Update an announcement (e.g., to activate/deactivate it)
 // @access  Private (Admin)
 router.put('/:id', authenticateToken, authorizeRoles('admin'), async (req, res) => {
-  const { message, expiryDate } = req.body;
+  const { message, expiryDate, publishDate, priority } = req.body;
 
   try {
     const announcement = await Announcement.findById(req.params.id);
@@ -69,8 +88,13 @@ router.put('/:id', authenticateToken, authorizeRoles('admin'), async (req, res) 
 
     const updatedAnnouncement = await Announcement.findByIdAndUpdate(
       req.params.id,
-      // Only allow updating message and expiryDate
-      { $set: { message, expiryDate } },
+      { $set: {
+          message,
+          priority,
+          expiryDate: expiryDate || null,
+          publishDate: publishDate || announcement.publishDate // Keep original if not provided
+        }
+      },
       { new: true }
     );
 

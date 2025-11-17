@@ -17,8 +17,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Edit, Megaphone } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
@@ -26,7 +27,9 @@ import { format } from 'date-fns';
 interface Announcement {
   _id: string;
   message: string;
+  priority: 'Normal' | 'Important' | 'Critical';
   expiryDate?: string;
+  publishDate?: string;
   createdBy: { name: string };
   createdAt: string;
 }
@@ -41,12 +44,14 @@ async function fetchAnnouncements(token: string | null): Promise<Announcement[]>
 
 const AnnouncementForm = ({ setOpen, editingAnnouncement }: { setOpen: (open: boolean) => void; editingAnnouncement: Announcement | null }) => {
   const [message, setMessage] = useState(editingAnnouncement?.message || '');
+  const [priority, setPriority] = useState(editingAnnouncement?.priority || 'Normal');
   const [expiryDate, setExpiryDate] = useState(editingAnnouncement?.expiryDate ? format(new Date(editingAnnouncement.expiryDate), "yyyy-MM-dd'T'HH:mm") : '');
+  const [publishDate, setPublishDate] = useState(editingAnnouncement?.publishDate ? format(new Date(editingAnnouncement.publishDate), "yyyy-MM-dd'T'HH:mm") : '');
   const token = localStorage.getItem('token');
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (payload: { message: string; expiryDate?: string }) => {
+    mutationFn: (payload: { message: string; expiryDate?: string; publishDate?: string; priority?: string; }) => {
       const isEditing = !!editingAnnouncement;
       const url = isEditing ? `${API_BASE_URL}/api/announcements/${editingAnnouncement._id}` : `${API_BASE_URL}/api/announcements`;
       const method = isEditing ? 'PUT' : 'POST';
@@ -74,12 +79,29 @@ const AnnouncementForm = ({ setOpen, editingAnnouncement }: { setOpen: (open: bo
       toast.error('Message is required.');
       return;
     }
-    mutation.mutate({ message, expiryDate: expiryDate || undefined });
+    mutation.mutate({
+      message,
+      priority,
+      expiryDate: expiryDate || undefined,
+      publishDate: publishDate || undefined,
+    });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Textarea placeholder="Announcement Message" value={message} onChange={(e) => setMessage(e.target.value)} required />
+      <div className="space-y-2">
+        <Label htmlFor="priority">Priority</Label>
+        <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value)} className="w-full p-2 border rounded-md bg-transparent">
+          <option value="Normal">Normal</option>
+          <option value="Important">Important</option>
+          <option value="Critical">Critical</option>
+        </select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="publish-date">Publish Date (Optional - defaults to now)</Label>
+        <Input id="publish-date" type="datetime-local" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} />
+      </div>
       <div className="space-y-2">
         <Label htmlFor="expiry-date">Expiry Date (Optional)</Label>
         <Input id="expiry-date" type="datetime-local" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
@@ -123,6 +145,27 @@ const AnnouncementManagement = () => {
     setFormOpen(true);
   };
 
+  const getStatus = (ann: Announcement): { text: string; variant: "default" | "secondary" | "destructive" | "outline" } => {
+    const now = new Date();
+    const publish = ann.publishDate ? new Date(ann.publishDate) : new Date(ann.createdAt);
+    const expiry = ann.expiryDate ? new Date(ann.expiryDate) : null;
+
+    if (expiry && now > expiry) return { text: 'Expired', variant: 'destructive' };
+    if (now < publish) return { text: 'Scheduled', variant: 'outline' };
+    return { text: 'Active', variant: 'default' };
+  };
+
+  const getPriorityVariant = (priority: Announcement['priority']): "default" | "secondary" | "destructive" => {
+    switch (priority) {
+      case 'Critical':
+        return 'destructive';
+      case 'Important':
+        return 'secondary';
+      default:
+        return 'default';
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar />
@@ -150,16 +193,22 @@ const AnnouncementManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Message</TableHead>
-                <TableHead>Expires</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Publish Date</TableHead>
+                <TableHead>Expiry Date</TableHead>
                 <TableHead>Created By</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {announcements?.map((ann) => (
-                <TableRow key={ann._id}>
+                <TableRow key={ann._id} className={getStatus(ann).text === 'Scheduled' ? 'text-muted-foreground' : ''}>
                   <TableCell className="font-medium max-w-sm truncate">{ann.message}</TableCell>
-                  <TableCell>{ann.expiryDate ? format(new Date(ann.expiryDate), 'PPp') : 'Never'}</TableCell>
+                  <TableCell><Badge variant={getStatus(ann).variant}>{getStatus(ann).text}</Badge></TableCell>
+                  <TableCell><Badge variant={getPriorityVariant(ann.priority)}>{ann.priority || 'Normal'}</Badge></TableCell>
+                  <TableCell>{ann.publishDate ? format(new Date(ann.publishDate), 'PPp') : format(new Date(ann.createdAt), 'PPp')}</TableCell>
+                  <TableCell>{ann.expiryDate ? format(new Date(ann.expiryDate), 'PPp') : '—'}</TableCell>
                   <TableCell>{ann.createdBy?.name || 'N/A'}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="outline" size="sm" onClick={() => handleEdit(ann)}><Edit className="h-4 w-4" /></Button>

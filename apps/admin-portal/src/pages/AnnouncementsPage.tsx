@@ -5,13 +5,15 @@ import { Sidebar } from '@/components/Sidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_BASE_URL } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Megaphone, Calendar } from 'lucide-react';
+import { Megaphone, Calendar, AlertTriangle, Info } from 'lucide-react';
 
 interface Announcement {
   _id: string;
   message: string;
+  priority: 'Normal' | 'Important' | 'Critical';
   createdAt: string;
   expiryDate?: string;
+  publishDate?: string;
 }
 
 async function fetchAnnouncements(token: string | null): Promise<Announcement[]> {
@@ -50,15 +52,29 @@ const AnnouncementsPage = () => {
             <p className="text-muted-foreground">Latest updates and news from the college administration.</p>
           </div>
 
+          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6 border p-3 rounded-lg">
+            <span className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" /> Critical</span>
+            <span className="flex items-center gap-2"><Info className="h-4 w-4 text-blue-500" /> Important</span>
+            <span className="flex items-center gap-2"><Megaphone className="h-4 w-4" /> Normal</span>
+          </div>
+
           {isLoading && <p>Loading announcements...</p>}
           {error && <p className="text-red-500">Error loading announcements.</p>}
 
           <div className="space-y-6">
             {announcements?.map((ann) => (
-              <Card key={ann._id} className="overflow-hidden">
+              <Card
+                key={ann._id}
+                className={`overflow-hidden ${
+                  ann.priority === 'Critical' ? 'border-destructive' :
+                  ann.priority === 'Important' ? 'border-blue-500' : ''
+                }`}
+              >
                 <CardHeader className="bg-muted/50 flex flex-row items-start gap-4 space-y-0 p-6">
                   <div className="bg-primary/10 p-3 rounded-full">
-                    <Megaphone className="h-6 w-6 text-primary" />
+                    {ann.priority === 'Critical' && <AlertTriangle className="h-6 w-6 text-destructive" />}
+                    {ann.priority === 'Important' && <Info className="h-6 w-6 text-blue-500" />}
+                    {ann.priority === 'Normal' && <Megaphone className="h-6 w-6 text-primary" />}
                   </div>
                   <div className="flex-1">
                     <CardTitle className="text-xl">{ann.message}</CardTitle>
