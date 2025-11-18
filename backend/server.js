@@ -11,6 +11,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes'); // Ensure this is
 const profileRoutes = require('./routes/profile'); // Import the new profile routes
 const recommendationRoutes = require('./routes/recommendationRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
+const adminRoutes = require('./routes/adminRoutes'); // Import admin routes
 const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/profile', profileRoutes); // Use the new profile routes
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/admin', adminRoutes); // Use admin routes
 app.use('/api', uploadRoutes); // Use the new upload routes
 
 // Connect DB + start server

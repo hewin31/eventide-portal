@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import EventApprovalsPage from "./pages/EventApprovalsPage";
 import ODManagementPage from "./pages/ODManagementPage";
 import AdminDashboard from "./pages/AdminDashboard"; // Import the new admin page
+import DashboardStatistics from "./pages/DashboardStatistics";
 import CoordinatorManagement from "./pages/CoordinatorManagement";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import AnnouncementManagement from "./pages/AnnouncementManagement";
@@ -40,7 +41,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Default redirect based on role */}
-      <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin/clubs' : '/dashboard') : '/login'} replace />} />
+      <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin/dashboard' : '/dashboard') : '/login'} replace />} />
 
       {/* Auth routes */}
       <Route path="/login" element={<Login />} />
@@ -60,6 +61,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <AllEvents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <DashboardStatistics />
           </ProtectedRoute>
         }
       />

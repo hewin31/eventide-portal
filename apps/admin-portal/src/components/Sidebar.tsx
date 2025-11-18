@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, User, LogOut, GraduationCap, Calendar, CheckSquare, ShieldCheck, LucideIcon, Settings, UserCog, Users, Megaphone } from 'lucide-react';
+import { Home, User, LogOut, GraduationCap, Calendar, CheckSquare, ShieldCheck, LucideIcon, Settings, UserCog, Users, Megaphone, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { API_BASE_URL } from '@/lib/utils';
@@ -123,6 +123,12 @@ export const Sidebar = ({ className }: SidebarProps) => {
       {user?.role === 'admin' && (
         <div className="p-4 space-y-2 border-t-2 border-primary/10">
           <h3 className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin Tools</h3>
+          <Link to="/admin/dashboard" className="block transition-all duration-300">
+            <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
+              <LayoutDashboard className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              Admin Overview
+            </Button>
+          </Link>
           <Link to="/admin/coordinators" className="block transition-all duration-300">
             <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 transition-all duration-300">
               <UserCog className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
