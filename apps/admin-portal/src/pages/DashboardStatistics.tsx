@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building, Users, Calendar, UserCog, Activity, BarChart } from 'lucide-react';
@@ -10,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface Club {
   _id: string;
+  name: string;
 }
 
 interface Coordinator {
@@ -75,6 +77,7 @@ async function fetchRecentActivity(token: string | null) {
 
 const DashboardStatistics = () => {
   const token = localStorage.getItem('token');
+  const navigate = useNavigate();
 
   const { data: clubs, isLoading: isLoadingClubs } = useQuery<Club[]>({
     queryKey: ['clubs'],
@@ -110,6 +113,7 @@ const DashboardStatistics = () => {
   const eventsPerClubData = useMemo(() => {
     if (!clubs || !events) return [];
     return clubs.map(club => ({
+      clubId: club._id,
       name: club.name.length > 15 ? `${club.name.substring(0, 12)}...` : club.name,
       events: events.filter(event => event.club === club._id).length,
     })).filter(data => data.events > 0); // Only show clubs with events
@@ -236,8 +240,7 @@ const DashboardStatistics = () => {
                     <RechartsBarChart data={eventsPerClubData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                       <XAxis dataKey="name" fontSize={10} interval={0} tickLine={false} axisLine={false} />
                       <YAxis allowDecimals={false} fontSize={12} />
-                      <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
-                      <Bar dataKey="events" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="events" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} onClick={(data) => navigate(`/club/${data.clubId}`)} className="cursor-pointer" />
                     </RechartsBarChart>
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No event data</div>
@@ -249,7 +252,7 @@ const DashboardStatistics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   {userRolesData.length > 0 ? (
                     <PieChart>
-                      <Pie data={userRolesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      <Pie data={userRolesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label onClick={(data) => navigate(`/admin/users?role=${data.name}`)} className="cursor-pointer">
                         {userRolesData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]} />
                         ))}
