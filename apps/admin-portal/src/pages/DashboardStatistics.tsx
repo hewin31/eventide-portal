@@ -134,13 +134,29 @@ const DashboardStatistics = () => {
   const ActivityIcon = ({ type }: { type: ActivityItem['type'] }) => {
     switch (type) {
       case 'Club':
-        return <Building className="h-4 w-4 text-primary" />;
+        return (
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <Building className="h-4 w-4 text-primary" />
+          </div>
+        );
       case 'User':
-        return <Users className="h-4 w-4 text-green-500" />;
+        return (
+          <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Users className="h-4 w-4 text-green-500" />
+          </div>
+        );
       case 'Event':
-        return <Calendar className="h-4 w-4 text-purple-500" />;
+        return (
+          <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+            <Calendar className="h-4 w-4 text-purple-500" />
+          </div>
+        );
       default:
-        return <Activity className="h-4 w-4 text-muted-foreground" />;
+        return (
+          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </div>
+        );
     }
   };
 
@@ -207,18 +223,25 @@ const DashboardStatistics = () => {
               {isLoadingActivities ? (
                 <p>Loading activities...</p>
               ) : activities && activities.length > 0 ? (
-                <ul className="space-y-4">
+                <ul className="space-y-2">
                   {activities.map(activity => (
-                    <li key={`${activity.type}-${activity._id}`} className="flex items-center gap-4">
-                      <ActivityIcon type={activity.type} />
-                      <div className="flex-grow">
-                        <p className="text-sm font-medium leading-none truncate">{activity.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          New {activity.type}
-                          {activity.createdAt && 
-                            ` · ${formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}`}
-                        </p>
-                      </div>
+                    <li
+                      key={`${activity.type}-${activity._id}`}
+                      className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (activity.type === 'Club') navigate(`/admin/clubs`);
+                        if (activity.type === 'Event') navigate(`/events`);
+                        if (activity.type === 'User') navigate(`/admin/users`);
+                      }}
+                    >
+                        <ActivityIcon type={activity.type} />
+                        <div className="flex-grow">
+                          <p className="text-sm font-medium leading-none truncate">{activity.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            New {activity.type}
+                            {activity.createdAt && ` · ${formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}`}
+                          </p>
+                        </div>
                     </li>
                   ))}
                 </ul>
@@ -252,12 +275,25 @@ const DashboardStatistics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   {userRolesData.length > 0 ? (
                     <PieChart>
-                      <Pie data={userRolesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label onClick={(data) => navigate(`/admin/users?role=${data.name}`)} className="cursor-pointer">
+                      <Pie
+                        data={userRolesData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label
+                        onClick={(data) => {
+                          if (data.name === 'admin') return; // Do nothing for admin
+                          if (data.name === 'coordinator') return navigate('/admin/coordinators');
+                          navigate(`/admin/users?role=${data.name}`);
+                        }}
+                        className="cursor-pointer"
+                      >
                         {userRolesData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
                       <Legend iconSize={10} />
                     </PieChart>
                   ) : (
