@@ -115,6 +115,18 @@ const DashboardStatistics = () => {
     })).filter(data => data.events > 0); // Only show clubs with events
   }, [clubs, events]);
 
+  const userRolesData = useMemo(() => {
+    if (!users) return [];
+    const roleCounts = users.reduce((acc, user) => {
+      acc[user.role] = (acc[user.role] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(roleCounts).map(([name, value]) => ({ name, value }));
+  }, [users]);
+
+  const PIE_CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
   const ActivityIcon = ({ type }: { type: ActivityItem['type'] }) => {
     switch (type) {
       case 'Club':
@@ -216,7 +228,7 @@ const DashboardStatistics = () => {
               <CardTitle className="text-lg font-semibold">Data Visualizations</CardTitle>
               <BarChart className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="h-[300px]">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[300px]">
               <div className="h-full flex flex-col">
                 <h3 className="text-center text-sm font-medium text-muted-foreground mb-2">Events per Club</h3>
                 <ResponsiveContainer width="100%" height="100%" className="flex-grow">
@@ -229,6 +241,24 @@ const DashboardStatistics = () => {
                     </RechartsBarChart>
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No event data</div>
+                  )}
+                </ResponsiveContainer>
+              </div>
+              <div className="h-full flex flex-col">
+                <h3 className="text-center text-sm font-medium text-muted-foreground mb-2">User Role Distribution</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                  {userRolesData.length > 0 ? (
+                    <PieChart>
+                      <Pie data={userRolesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                        {userRolesData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
+                      <Legend iconSize={10} />
+                    </PieChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No user data</div>
                   )}
                 </ResponsiveContainer>
               </div>
