@@ -42,27 +42,23 @@ router.get('/coordinators', authenticateToken, authorizeRoles('admin'), async (r
 // @route   GET /api/users/all
 // @desc    Get all users with pagination and search
 // @access  Private (Admin)
-router.get('/all', authenticateToken, authorizeRoles('admin'), async (req, res) => {
-  const { search, page = 1, limit = 10 } = req.query;
+router.get('/all', authenticateToken, authorizeRoles('admin'), async (req, res) => { 
+  const { search, page = 1, limit = 10, role } = req.query;
   const skip = (page - 1) * limit;
 
   try {
-    // Base filter to exclude admins and coordinators
-    const baseFilter = { role: { $nin: ['admin', 'coordinator'] } };
+    let query = {};
 
-    const query = search
-      ? {
-          $and: [
-            baseFilter,
-            {
-              $or: [
-                { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } },
-              ],
-            },
-          ],
-        }
-      : baseFilter;
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (role) {
+      query.role = role;
+    }
 
     const users = await User.find(query)
       .select('-password')

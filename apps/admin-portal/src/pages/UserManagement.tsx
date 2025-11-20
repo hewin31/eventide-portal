@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Edit, UserCog, Search } from 'lucide-react';
@@ -44,8 +45,9 @@ interface FetchUsersResponse {
   limit: number;
 }
 
-async function fetchUsers(token: string | null, search: string = '', page: number = 1, limit: number = 10): Promise<FetchUsersResponse> {
-  const url = `${API_BASE_URL}/api/users/all?page=${page}&limit=${limit}&search=${search}`;
+async function fetchUsers(token: string | null, search: string = '', page: number = 1, limit: number = 10, role: string = ''): Promise<FetchUsersResponse> {
+  let url = `${API_BASE_URL}/api/users/all?page=${page}&limit=${limit}&search=${search}`;
+  if (role) url += `&role=${role}`;
   const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
@@ -171,12 +173,17 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sync state with URL query parameters for better UX and deep linking
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const roleFilter = searchParams.get('role') || '';
+
   const token = localStorage.getItem('token');
 
   const { data: usersData, isLoading, error } = useQuery<FetchUsersResponse>({
-    queryKey: ['users', search, page],
-    queryFn: () => fetchUsers(token, search, page),
+    queryKey: ['users', search, page, roleFilter],
+    queryFn: () => fetchUsers(token, search, page, 10, roleFilter),
   });
 
   const queryClient = useQueryClient();
@@ -211,7 +218,22 @@ const UserManagement = () => {
     setFormOpen(true);
   };
 
+  const handleFilterChange = (value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('page', '1'); // Reset to first page on filter change
+    const roleValue = value === 'all' ? '' : value;
+    roleValue ? newParams.set('role', roleValue) : newParams.delete('role');
+    setSearchParams(newParams);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('page', String(newPage));
+    setSearchParams(newParams);
+  };
+
   const totalPages = usersData ? Math.ceil(usersData.totalUsers / usersData.limit) : 0;
+
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -219,19 +241,31 @@ const UserManagement = () => {
       <main className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">User Management</h1>
-          <div className="flex items-center space-x-4">
-           <div className="relative">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Select onValueChange={handleFilterChange} value={roleFilter || 'all'}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="coordinator">Coordinator</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="relative">
               <Input
                 placeholder="Search by name or email..."
                 value={search}
                 onChange={(e) => {
-                   setSearch(e.target.value);
-                   setPage(1); // Reset to the first page when searching
+                  setSearch(e.target.value);
                 }}
                 className="pl-10"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-           </div>
+            </div>
             <Dialog open={isFormOpen} onOpenChange={(open) => {
               if (!open) setEditingUser(null);
               setFormOpen(open);
@@ -251,7 +285,11 @@ const UserManagement = () => {
           </div>
         </div>
 
-        {isLoading && <p>Loading users...</p>}
+        {isLoading && <p>Loading users...</p>} 
+        {/* Improved error handling */}
+        {error && (
+          <p className="text-red-500">Error: {error instanceof Error ? error.message : 'Failed to load users'}</p>
+        )}
         {error && <p className="text-red-500">Error loading users.</p>}
 
         <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
@@ -271,10 +309,12 @@ const UserManagement = () => {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right flex gap-2 justify-end">
+
                     <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
                       <Edit className="mr-2 h-4 w-4" /> Edit
                     </Button>
+
                     <Button variant="destructive" size="sm" onClick={() => setDeleteCandidate(user)}>
                       <Trash2 className="mr-2 h-4 w-4" /> Delete
                     </Button>
@@ -290,26 +330,24 @@ const UserManagement = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(page - 1)}
+                      onClick={() => handlePageChange(page - 1)}
                       disabled={page === 1}
                     >
                       Previous
                     </Button>
                     <Input
                       type="number"
-                      value={page}
+                      value={page.toString()}
                       onChange={(e) => {
-                        const newPage = parseInt(e.target.value);
-                        if (!isNaN(newPage) && newPage > 0 && newPage <= totalPages) {
-                          setPage(newPage);
-                        }
+                        const newPage = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                        if (!isNaN(newPage) && newPage > 0 && newPage <= totalPages) handlePageChange(newPage);
                       }}
                       className="w-16 text-center"
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(page + 1)}
+                      onClick={() => handlePageChange(page + 1)}
                       disabled={page === totalPages}
                     >
                       Next
