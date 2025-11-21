@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building, Users, Calendar, UserCog, Activity, BarChart } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { API_BASE_URL } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ResponsiveContainer, BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -25,11 +25,13 @@ interface User {
 
 interface Event {
   _id: string;
-  club: string;
+  club: string | { _id: string; name: string };
 }
 
 interface ActivityItem {
   _id: string;
+  name?: string;
+  club?: string | { _id: string; name: string };
   type: 'Club' | 'User' | 'Event';
   title: string;
   createdAt: string;
@@ -109,13 +111,22 @@ const DashboardStatistics = () => {
     enabled: !!token,
   });
 
+  const [activityFilter, setActivityFilter] = useState<'All' | 'Club' | 'Event' | 'User'>('All');
+
+  const filteredActivities = useMemo(() => {
+    if (!activities) return [];
+    if (activityFilter === 'All') return activities;
+    return activities.filter(activity => activity.type === activityFilter);
+  }, [activities, activityFilter]);
+
   // --- Chart Data Processing ---
   const eventsPerClubData = useMemo(() => {
     if (!clubs || !events) return [];
     return clubs.map(club => ({
       clubId: club._id,
       name: club.name.length > 15 ? `${club.name.substring(0, 12)}...` : club.name,
-      events: events.filter(event => event.club === club._id).length,
+      // Handle both populated and unpopulated club fields
+      events: events.filter(event => (typeof event.club === 'string' ? event.club : event.club?._id) === club._id).length,
     })).filter(data => data.events > 0); // Only show clubs with events
   }, [clubs, events]);
 
@@ -215,27 +226,43 @@ const DashboardStatistics = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="lg:col-span-1 hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-              <Activity className="h-5 w-5 text-muted-foreground" />
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+                <Activity className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <Button size="xs" variant={activityFilter === 'All' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('All')}>All</Button>
+                <Button size="xs" variant={activityFilter === 'Club' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('Club')}>Clubs</Button>
+                <Button size="xs" variant={activityFilter === 'Event' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('Event')}>Events</Button>
+                <Button size="xs" variant={activityFilter === 'User' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('User')}>Users</Button>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="h-[300px] overflow-y-auto">
               {isLoadingActivities ? (
                 <p>Loading activities...</p>
-              ) : activities && activities.length > 0 ? (
+              ) : filteredActivities && filteredActivities.length > 0 ? (
                 <ul className="space-y-2">
-                  {activities.map(activity => (
+                  {filteredActivities.map(activity => (
                     <li
                       key={`${activity.type}-${activity._id}`}
                       className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
                       onClick={() => {
-                        if (activity.type === 'Club') navigate(`/admin/clubs`);
-                        if (activity.type === 'Event') navigate(`/events`);
-                        if (activity.type === 'User') navigate(`/admin/users`);
+                        if (activity.type === 'Club') {
+                          navigate(`/club/${activity._id}`);
+                        } else if (activity.type === 'Event') {
+                          const clubId = typeof activity.club === 'string' ? activity.club : activity.club?._id;
+                          if (clubId) {
+                            navigate(`/club/${clubId}/event/${activity._id}`);
+                          }
+                        } else if (activity.type === 'User') {
+                          // Navigate to user management and pre-fill search
+                          navigate(`/admin/users?search=${encodeURIComponent(activity.name || '')}`);
+                        }
                       }}
                     >
                         <ActivityIcon type={activity.type} />
-                        <div className="flex-grow">
+                        <div className="flex-grow overflow-hidden">
                           <p className="text-sm font-medium leading-none truncate">{activity.title}</p>
                           <p className="text-xs text-muted-foreground">
                             New {activity.type}

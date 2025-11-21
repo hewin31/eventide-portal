@@ -33,21 +33,31 @@ router.get('/users/all', authenticateToken, authorizeRoles('admin'), async (req,
 
 router.get('/recent-activity', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
-    const limit = 5;
+    const limit = 10; // Fetch a larger pool to ensure we don't miss recent items
 
     const recentClubs = await Club.find().sort({ createdAt: -1 }).limit(limit).lean();
-    const recentUsers = await User.find({ role: { $ne: 'admin' } }).sort({ createdAt: -1 }).limit(limit).lean();
-    const recentEvents = await Event.find().sort({ createdAt: -1 }).limit(limit).lean();
+    const recentUsers = await User.find({ role: { $ne: 'admin' } }).sort({ createdAt: -1 }).limit(limit).select('-password').lean();
+    const recentEvents = await Event.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('createdBy', 'name')
+      .populate('club', 'name')
+      .lean();
 
     const activities = [
-      ...recentClubs.map(item => ({ ...item, type: 'Club', title: item.name })),
-      ...recentUsers.map(item => ({ ...item, type: 'User', title: item.name })),
-      ...recentEvents.map(item => ({ ...item, type: 'Event', title: item.name })),
+      ...recentClubs.map(item => ({ ...item, type: 'Club', title: `New club '${item.name || 'Unnamed Club'}' was created.` })),
+      ...recentUsers.map(item => ({ ...item, type: 'User', title: `User '${item.name || 'Unnamed User'}' has registered.` })),
+      ...recentEvents.map(item => ({
+        ...item,
+        type: 'Event',
+        title: `${item.createdBy?.name || 'A user'} created event '${item.name || 'Unnamed Event'}' in ${item.club?.name || 'a club'}.`
+      })),
     ];
 
-    // Sort all combined activities by date and take the most recent ones
     const sortedActivities = activities
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      // Filter out any items that do not have a valid createdAt timestamp before sorting
+      .filter(item => item.createdAt && !isNaN(new Date(item.createdAt).getTime()))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 7); // Get the top 7 recent activities overall
 
     res.json(sortedActivities);
