@@ -31,42 +31,82 @@ router.get('/users/all', authenticateToken, authorizeRoles('admin'), async (req,
     }
 });
 
-router.get('/recent-activity', authenticateToken, authorizeRoles('admin'), async (req, res) => {
+router.get(
+  '/recent-activity',
+  authenticateToken,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    try {
+      const fetchLimit = 15; // Fetch a larger pool of items
+      const displayLimit = 10; // Display up to 10 recent items
+
+      // Fetch all recent items in parallel for better performance
+      const [recentClubs, recentUsers, recentEvents] = await Promise.all([
+        Club.find().sort({ createdAt: -1 }).limit(fetchLimit).lean(),
+        User.find({ role: { $ne: 'admin' } }).sort({ createdAt: -1 }).limit(fetchLimit).select('-password').lean(),
+        Event.find().sort({ createdAt: -1 }).limit(fetchLimit).populate('club', 'name').lean()
+      ]);
+
+      const activities = [
+        ...recentClubs.map(item => ({
+          ...item,
+          type: 'Club',
+          title: `New club '${item.name || 'Unnamed Club'}' was created.`,
+        })),
+        ...recentUsers.map(item => ({
+          ...item,
+          type: 'User',
+          title: `User '${item.name || 'Unnamed User'}' has registered.`,
+        })),
+        ...recentEvents.map(item => ({
+          ...item,
+          type: 'Event',
+          // Safely access club name
+          title: `Event '${item.name || 'Unnamed Event'}' was created in ${item.club?.name || 'a club'}.`,
+        })),
+      ];
+
+      // More robust sorting and filtering
+      const sortedActivities = activities
+        .filter(item => item.createdAt) // Ensure createdAt exists
+        .sort((a, b) => {
+          // Defensive sorting to prevent crashes on invalid dates
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          if (isNaN(dateA) || isNaN(dateB)) {
+            return 0; // Don't sort if dates are invalid
+          }
+          return dateB - dateA;
+        })
+        .slice(0, displayLimit); // Slice to the new display limit
+
+      res.json(sortedActivities);
+    } catch (err) {
+      debug('Error fetching recent activity:', err);
+      res.status(500).json({
+        error: 'Server error while fetching recent activity.',
+      });
+    }
+  }
+);
+
+
+router.patch('/users/:id/role', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
-    const limit = 10; // Fetch a larger pool to ensure we don't miss recent items
+    const { role } = req.body;
+    const { id } = req.params;
 
-    const recentClubs = await Club.find().sort({ createdAt: -1 }).limit(limit).lean();
-    const recentUsers = await User.find({ role: { $ne: 'admin' } }).sort({ createdAt: -1 }).limit(limit).select('-password').lean();
-    const recentEvents = await Event.find()
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .populate('createdBy', 'name')
-      .populate('club', 'name')
-      .lean();
+    if (!['faculty', 'member', 'student', 'coordinator'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role specified.' });
+    }
 
-    const activities = [
-      ...recentClubs.map(item => ({ ...item, type: 'Club', title: `New club '${item.name || 'Unnamed Club'}' was created.` })),
-      ...recentUsers.map(item => ({ ...item, type: 'User', title: `User '${item.name || 'Unnamed User'}' has registered.` })),
-      ...recentEvents.map(item => ({
-        ...item,
-        type: 'Event',
-        title: `${item.createdBy?.name || 'A user'} created event '${item.name || 'Unnamed Event'}' in ${item.club?.name || 'a club'}.`
-      })),
-    ];
+    const user = await User.findByIdAndUpdate(id, { role }, { new: true }).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found.' });
 
-    const sortedActivities = activities
-      // Filter out any items that do not have a valid createdAt timestamp before sorting
-      .filter(item => item.createdAt && !isNaN(new Date(item.createdAt).getTime()))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 7); // Get the top 7 recent activities overall
-
-    res.json(sortedActivities);
-
+    res.json(user);
   } catch (err) {
-    debug(`Error fetching recent activity for admin: ${err.stack}`);
-    res.status(500).json({ error: 'Server error while fetching recent activity.' });
+    res.status(500).json({ error: 'Server error while updating user role.' });
   }
 });
-
 
 module.exports = router;

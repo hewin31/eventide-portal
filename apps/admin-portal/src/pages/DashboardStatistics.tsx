@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Users, Calendar, UserCog, Activity, BarChart } from 'lucide-react';
-import { Sidebar } from '@/components/Sidebar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Building, Users, Calendar, UserCog, Activity, BarChart, Inbox } from 'lucide-react';
+import { Sidebar } from '@/components/Sidebar'; 
 import { API_BASE_URL } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ResponsiveContainer, BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -112,12 +114,21 @@ const DashboardStatistics = () => {
   });
 
   const [activityFilter, setActivityFilter] = useState<'All' | 'Club' | 'Event' | 'User'>('All');
+  const [activityPage, setActivityPage] = useState(0);
+  const ACTIVITIES_PER_PAGE = 3;
 
   const filteredActivities = useMemo(() => {
+    setActivityPage(0); // Reset to first page on filter change
     if (!activities) return [];
     if (activityFilter === 'All') return activities;
     return activities.filter(activity => activity.type === activityFilter);
   }, [activities, activityFilter]);
+
+  // Paginate the filtered activities
+  const activitiesToShow = useMemo(() => {
+    const startIndex = activityPage * ACTIVITIES_PER_PAGE;
+    return filteredActivities.slice(startIndex, startIndex + ACTIVITIES_PER_PAGE);
+  }, [filteredActivities, activityPage]);
 
   // --- Chart Data Processing ---
   const eventsPerClubData = useMemo(() => {
@@ -146,19 +157,19 @@ const DashboardStatistics = () => {
     switch (type) {
       case 'Club':
         return (
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-background">
             <Building className="h-4 w-4 text-primary" />
           </div>
         );
       case 'User':
         return (
-          <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center ring-4 ring-background">
             <Users className="h-4 w-4 text-green-500" />
           </div>
         );
       case 'Event':
         return (
-          <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center ring-4 ring-background">
             <Calendar className="h-4 w-4 text-purple-500" />
           </div>
         );
@@ -171,6 +182,20 @@ const DashboardStatistics = () => {
     }
   };
 
+  // A skeleton loader component that mimics the activity list structure
+  const ActivitySkeleton = () => (
+    <div className="space-y-4">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-grow space-y-2">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -227,53 +252,85 @@ const DashboardStatistics = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="lg:col-span-1 hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
                 <Activity className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div className="flex items-center gap-2 pt-2">
-                <Button size="xs" variant={activityFilter === 'All' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('All')}>All</Button>
-                <Button size="xs" variant={activityFilter === 'Club' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('Club')}>Clubs</Button>
-                <Button size="xs" variant={activityFilter === 'Event' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('Event')}>Events</Button>
-                <Button size="xs" variant={activityFilter === 'User' ? 'secondary' : 'ghost'} onClick={() => setActivityFilter('User')}>Users</Button>
-              </div>
+              <CardDescription>A log of recent creations in the portal.</CardDescription>
+              <ToggleGroup
+                type="single"
+                value={activityFilter}
+                onValueChange={(value) => value && setActivityFilter(value as any)}
+                className="pt-2 justify-start"
+              >
+                <ToggleGroupItem value="All" aria-label="Toggle All">All</ToggleGroupItem>
+                <ToggleGroupItem value="Club" aria-label="Toggle Clubs">Clubs</ToggleGroupItem>
+                <ToggleGroupItem value="Event" aria-label="Toggle Events">Events</ToggleGroupItem>
+                <ToggleGroupItem value="User" aria-label="Toggle Users">Users</ToggleGroupItem>
+              </ToggleGroup>
             </CardHeader>
-            <CardContent className="h-[300px] overflow-y-auto">
+            <CardContent className="pt-4 h-[300px] flex flex-col justify-between">
               {isLoadingActivities ? (
-                <p>Loading activities...</p>
+                <ActivitySkeleton />
               ) : filteredActivities && filteredActivities.length > 0 ? (
-                <ul className="space-y-2">
-                  {filteredActivities.map(activity => (
-                    <li
-                      key={`${activity.type}-${activity._id}`}
-                      className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        if (activity.type === 'Club') {
-                          navigate(`/club/${activity._id}`);
-                        } else if (activity.type === 'Event') {
-                          const clubId = typeof activity.club === 'string' ? activity.club : activity.club?._id;
-                          if (clubId) {
-                            navigate(`/club/${clubId}/event/${activity._id}`);
+                <div>
+                  <div className="relative pl-6">
+                    {/* Vertical timeline bar */}
+                    <div className="absolute left-[29px] top-2 h-full w-0.5 bg-border -translate-x-1/2"></div>
+                  <ul className="space-y-6">
+                    {activitiesToShow.map(activity => (
+                      <li
+                        key={`${activity.type}-${activity._id}`}
+                        className="relative flex items-start gap-4 cursor-pointer group"
+                        onClick={() => {
+                          if (activity.type === 'Club') {
+                            navigate(`/club/${activity._id}`);
+                          } else if (activity.type === 'Event') {
+                            const clubId = typeof activity.club === 'string' ? activity.club : activity.club?._id;
+                            if (clubId) {
+                              navigate(`/club/${clubId}/event/${activity._id}`);
+                            }
+                          } else if (activity.type === 'User') {
+                            navigate(`/admin/users?search=${encodeURIComponent(activity.name || '')}`);
                           }
-                        } else if (activity.type === 'User') {
-                          // Navigate to user management and pre-fill search
-                          navigate(`/admin/users?search=${encodeURIComponent(activity.name || '')}`);
-                        }
-                      }}
-                    >
-                        <ActivityIcon type={activity.type} />
-                        <div className="flex-grow overflow-hidden">
-                          <p className="text-sm font-medium leading-none truncate">{activity.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            New {activity.type}
-                            {activity.createdAt && ` · ${formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}`}
-                          </p>
-                        </div>
-                    </li>
-                  ))}
-                </ul>
+                        }}>
+                          <ActivityIcon type={activity.type} />
+                          <div className="flex-grow pt-1">
+                            <p className="text-sm font-medium leading-tight group-hover:text-primary transition-colors">{activity.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {activity.createdAt && formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No recent activity found.</p>
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                  <Inbox className="h-12 w-12 mb-4 text-gray-400" />
+                  <p className="text-sm font-medium">No activity to show</p>
+                  <p className="text-xs">It looks like nothing has happened recently.</p>
+                </div>
+              )}
+              {/* Internal Pagination Controls */}
+              {filteredActivities && filteredActivities.length > ACTIVITIES_PER_PAGE && (
+                <div className="flex items-center justify-center pt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActivityPage(p => p - 1)}
+                    disabled={activityPage === 0}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground mx-2">
+                    Page {activityPage + 1} of {Math.ceil(filteredActivities.length / ACTIVITIES_PER_PAGE)}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={() => setActivityPage(p => p + 1)} disabled={(activityPage + 1) * ACTIVITIES_PER_PAGE >= filteredActivities.length}>
+                    Next
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
