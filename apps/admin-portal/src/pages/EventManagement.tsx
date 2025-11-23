@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // This was not used
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart } from 'lucide-react';
+import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart, MessageSquare, Send, User } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/utils';
 import { QRCodeModal } from '@/components/QRCodeModal';
@@ -40,6 +42,8 @@ const EventManagement = () => {
   const token = localStorage.getItem('token');
   const [activeTab, setActiveTab] = useState('details');
   const queryClient = useQueryClient();
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; text: string } | null>(null);
+  const [newComment, setNewComment] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const isCoordinator = user?.role === 'coordinator';
@@ -102,6 +106,58 @@ const EventManagement = () => {
     updateOdStatusMutation.mutate({ attendanceId, odStatus: status });
   };
 
+  const replyMutation = useMutation({
+    mutationFn: ({ commentId, text }: { commentId: string; text: string }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/replies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Reply posted successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setReplyingTo(null); // Clear reply input
+    },
+    onError: () => {
+      toast.error('Failed to post reply.');
+    },
+  });
+
+  const handlePostReply = (commentId: string) => {
+    if (!replyingTo || replyingTo.text.trim() === '') return;
+    replyMutation.mutate({ commentId, text: replyingTo.text });
+  };
+
+  const commentMutation = useMutation({
+    mutationFn: (text: string) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Comment posted successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setNewComment(''); // Clear input after posting
+    },
+    onError: () => {
+      toast.error('Failed to post comment.');
+    },
+  });
+
+  const handlePostComment = () => {
+    if (newComment.trim() === '') return;
+    commentMutation.mutate(newComment);
+  };
+
   const handleExportList = () => {
     if (!registrationData || !registrationData.attendance || registrationData.attendance.length === 0) {
       toast.info("No registered participants to export.");
@@ -162,7 +218,7 @@ const EventManagement = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsList className="grid w-full max-w-3xl grid-cols-5">
               <TabsTrigger value="details">
                 <FileText className="mr-2 h-4 w-4" />
                 Details
@@ -178,6 +234,10 @@ const EventManagement = () => {
               <TabsTrigger value="od">
                 <CheckSquare className="mr-2 h-4 w-4" />
                 OD Approvals
+              </TabsTrigger>
+              <TabsTrigger value="comments">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Comments
               </TabsTrigger>
             </TabsList>
 
@@ -395,6 +455,79 @@ const EventManagement = () => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="comments">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Event Comments</CardTitle>
+                  <CardDescription>
+                    View and participate in the discussion. All users can post comments and replies.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* New Comment Input */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Write a comment..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                    />
+                    <Button onClick={handlePostComment} disabled={commentMutation.isPending}>
+                      <Send className="mr-2 h-4 w-4" /> Post
+                    </Button>
+                  </div>
+                  {event.comments && event.comments.length > 0 ? (
+                    event.comments.map((comment: any) => (
+                      <div key={comment._id} className="p-4 border rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                            <User className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-grow">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold">{comment.user?.name || 'Anonymous'}</p>
+                              <Badge variant="outline" className="capitalize text-xs">{comment.user?.role}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</p>
+                            <p className="mt-2">{comment.text}</p>
+                          </div>
+                        </div>
+                        {/* Replies Section */}
+                        <div className="pl-12 mt-4 space-y-4">
+                          {comment.replies?.map((reply: any) => (
+                            <div key={reply._id} className="flex items-start gap-3">
+                              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-grow">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold">{reply.user?.name || 'Coordinator'}</p>
+                                  <Badge variant="secondary" className="capitalize text-xs">{reply.user?.role}</Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}</p>
+                                <p className="mt-1 text-sm">{reply.text}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {/* Reply Input for all authenticated users */}
+                          <div className="flex items-center gap-2 pt-2">
+                            <Input
+                              placeholder="Write a reply..."
+                              value={replyingTo?.commentId === comment._id ? replyingTo.text : ''}
+                              onChange={(e) => setReplyingTo({ commentId: comment._id, text: e.target.value })}
+                            />
+                            <Button size="icon" onClick={() => handlePostReply(comment._id)} disabled={replyMutation.isPending}>
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">No comments on this event yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
 
           {isQrModalOpen && (

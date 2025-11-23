@@ -7,6 +7,19 @@ const ContactPersonSchema = new mongoose.Schema({
   whatsappLink: { type: String, required: true },
 });
 
+const ReplySchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const CommentSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  replies: [ReplySchema]
+});
+
 const EventSchema = new mongoose.Schema({
   event_id: { type: Number }, 
   club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
@@ -46,6 +59,7 @@ const EventSchema = new mongoose.Schema({
   themeColor: { type: String, default: '#3b82f6' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
+  comments: [CommentSchema], // Added comments field
 });
 
 module.exports = mongoose.model('Event', EventSchema);

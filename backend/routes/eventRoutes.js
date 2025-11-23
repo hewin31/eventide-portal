@@ -405,11 +405,78 @@ router.get('/my-events', authenticateToken, authorizeRoles('student'), async (re
 });
 
 // -----------------------------
+// Add a comment to an event
+// -----------------------------
+router.post('/:id/comments', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: 'Comment text is required.' });
+    }
+
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    const comment = {
+      user: req.user.id,
+      text,
+    };
+
+    event.comments.unshift(comment); // Add to the beginning of the array
+    await event.save();
+
+    // Populate user details for the newly added comment before sending back
+    const newComment = event.comments[0];
+    await newComment.populate({ path: 'user', select: 'name role' });
+
+    res.status(201).json(newComment);
+  } catch (err) {
+    debug(`Error adding comment: ${err.message}`);
+    res.status(500).json({ error: 'Server error while adding comment.' });
+  }
+});
+
+// -----------------------------
+// Add a reply to a comment
+// -----------------------------
+router.post('/:id/comments/:commentId/replies', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: 'Reply text is required.' });
+    }
+
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+    const comment = event.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+    const reply = { user: req.user.id, text };
+    comment.replies.push(reply);
+    await event.save();
+
+    const newReply = comment.replies[comment.replies.length - 1];
+    await newReply.populate({ path: 'user', select: 'name role' });
+
+    res.status(201).json(newReply);
+  } catch (err) {
+    debug(`Error adding reply: ${err.message}`);
+    res.status(500).json({ error: 'Server error while adding reply.' });
+  }
+});
+// -----------------------------
 // Get single event (private)
 // -----------------------------
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate('club', 'name').lean(); // Use .lean() for a plain object
+    const event = await Event.findById(req.params.id)
+      .populate('club', 'name')
+      .populate('comments.user', 'name role') // Populate comment author
+      .populate('comments.replies.user', 'name role') // Populate reply author
+      .lean(); // Use .lean() for a plain object
 
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
