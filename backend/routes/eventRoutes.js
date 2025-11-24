@@ -427,11 +427,13 @@ router.post('/:id/comments', authenticateToken, authorizeRoles('student', 'membe
     event.comments.unshift(comment); // Add to the beginning of the array
     await event.save();
 
-    // Populate user details for the newly added comment before sending back
-    const newComment = event.comments[0];
-    await newComment.populate({ path: 'user', select: 'name role' });
+    // Repopulate the user details on the newly added comment before sending it back
+    await event.populate({
+      path: 'comments.user',
+      select: 'name role'
+    });
 
-    res.status(201).json(newComment);
+    res.status(201).json(event.comments[0]);
   } catch (err) {
     debug(`Error adding comment: ${err.message}`);
     res.status(500).json({ error: 'Server error while adding comment.' });
@@ -458,10 +460,14 @@ router.post('/:id/comments/:commentId/replies', authenticateToken, authorizeRole
     comment.replies.push(reply);
     await event.save();
 
-    const newReply = comment.replies[comment.replies.length - 1];
-    await newReply.populate({ path: 'user', select: 'name role' });
+    // Repopulate to get the user details for the new reply
+    await event.populate({
+      path: 'comments.replies.user',
+      select: 'name role'
+    });
 
-    res.status(201).json(newReply);
+    const updatedComment = event.comments.id(req.params.commentId);
+    res.status(201).json(updatedComment.replies[updatedComment.replies.length - 1]);
   } catch (err) {
     debug(`Error adding reply: ${err.message}`);
     res.status(500).json({ error: 'Server error while adding reply.' });
