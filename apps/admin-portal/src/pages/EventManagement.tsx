@@ -7,7 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart, MessageSquare, Send, User } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart, MessageSquare, Send, User, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
@@ -42,6 +52,7 @@ const EventManagement = () => {
   const token = localStorage.getItem('token');
   const [activeTab, setActiveTab] = useState('details');
   const queryClient = useQueryClient();
+  const [deleteCommentCandidate, setDeleteCommentCandidate] = useState<{ commentId: string; text: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; text: string } | null>(null);
   const [newComment, setNewComment] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -131,6 +142,26 @@ const EventManagement = () => {
     if (!replyingTo || replyingTo.text.trim() === '') return;
     replyMutation.mutate({ commentId, text: replyingTo.text });
   };
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Comment deleted successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setDeleteCommentCandidate(null);
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete comment: ${error.message}`);
+    },
+  });
+
 
   const commentMutation = useMutation({
     mutationFn: (text: string) => {
@@ -478,7 +509,7 @@ const EventManagement = () => {
                   {event.comments && event.comments.length > 0 ? (
                     event.comments.map((comment: any) => (
                       <div key={comment._id} className="p-4 border rounded-lg">
-                        <div className="flex items-start gap-3">
+                        <div className="relative flex items-start gap-3">
                           <div className="flex-shrink-0 h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                             <User className="h-5 w-5 text-muted-foreground" />
                           </div>
@@ -487,6 +518,17 @@ const EventManagement = () => {
                               <p className="font-semibold">{comment.user?.name || 'Anonymous'}</p>
                               <Badge variant="outline" className="capitalize text-xs">{comment.user?.role}</Badge>
                             </div>
+                            {(user?.role === 'member' || user?.role === 'coordinator') && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                                onClick={() => setDeleteCommentCandidate({ commentId: comment._id, text: comment.text })}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+
                             <p className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</p>
                             <p className="mt-2">{comment.text}</p>
                           </div>
@@ -530,6 +572,25 @@ const EventManagement = () => {
             </TabsContent>
           </Tabs>
 
+          <AlertDialog open={!!deleteCommentCandidate} onOpenChange={() => setDeleteCommentCandidate(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the comment: "<strong>{deleteCommentCandidate?.text}</strong>".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteCommentCandidate && deleteCommentMutation.mutate(deleteCommentCandidate.commentId)}
+                  disabled={deleteCommentMutation.isPending}
+                >
+                  {deleteCommentMutation.isPending ? 'Deleting...' : 'Delete Comment'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {isQrModalOpen && (
             <QRCodeModal
               eventName={event.name}

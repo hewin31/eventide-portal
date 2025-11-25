@@ -146,6 +146,47 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), as
 });
 
 // -----------------------------
+// Delete a comment from an event (Club Member/Coordinator only)
+// -----------------------------
+router.delete('/:id/comments/:commentId', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const commentId = req.params.commentId;
+    const userId = req.user.id;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    const club = await Club.findById(event.club);
+    if (!club) {
+      return res.status(404).json({ error: 'Associated club not found.' });
+    }
+
+    // Check if the user is a coordinator or member of the event's club
+    const isClubCoordinator = club.coordinators?.some(c => c.toString() === userId);
+    const isClubMember = club.members?.some(m => m.toString() === userId);
+
+    if (!isClubCoordinator && !isClubMember) {
+      return res.status(403).json({ error: 'User not authorized to delete comments for this event.' });
+    }
+
+    const commentIndex = event.comments.findIndex(c => c._id.toString() === commentId);
+    if (commentIndex === -1) {
+      return res.status(404).json({ error: 'Comment not found.' });
+    }
+
+    event.comments.splice(commentIndex, 1); // Remove the comment
+    await event.save();
+    res.status(200).json({ message: 'Comment deleted successfully.' });
+  } catch (err) {
+    debug(`Error deleting comment: ${err.message}`);
+    res.status(500).json({ error: 'Server error while deleting comment.' });
+  }
+});
+
+// -----------------------------
 // Get pending event approvals for the coordinator
 // -----------------------------
 router.get('/pending-approvals', authenticateToken, authorizeRoles('coordinator'), async (req, res) => {
