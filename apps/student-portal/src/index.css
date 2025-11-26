@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Page colors - Light Mode: #F4F6F8 background */
+    --background: 210 20% 96%;
+    --foreground: 220 26% 14%;
+
+    /* Card colors - Light Mode: #FFFFFF */
+    --card: 0 0% 100%;
+    --card-foreground: 220 26% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 26% 14%;
+
+    /* Primary color - Indigo #4F46E5 */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary button - Light gray #E5E7EB */
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 220 26% 14%;
+
+    /* Muted - matches secondary in light mode */
+    --muted: 220 13% 91%;
+    --muted-foreground: 220 13% 46%;
+
+    /* Accent - Amber #F59E0B */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Status colors */
+    --warning: 48 96% 53%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border and input */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(243 75% 59%), hsl(239 84% 67%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(243 75% 59%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210 20% 96%), hsl(220 13% 91%));
+
+    /* Shadows */
+    --shadow-card: 0 4px 16px -2px hsl(243 75% 59% / 0.08);
+    --shadow-elevated: 0 12px 40px -8px hsl(243 75% 59% / 0.15);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Page colors - Dark Mode: #1F2937 background */
+    --background: 217 33% 17%;
+    --foreground: 210 20% 98%;
+
+    /* Card colors - Dark Mode: #374151 */
+    --card: 217 19% 27%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 217 19% 27%;
+    --popover-foreground: 210 20% 98%;
+
+    /* Primary color - Indigo #6366F1 (brighter for dark mode) */
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary button - Dark gray #4B5563 */
+    --secondary: 217 16% 34%;
+    --secondary-foreground: 210 20% 98%;
+
+    /* Muted - matches secondary in dark mode */
+    --muted: 217 16% 34%;
+    --muted-foreground: 220 13% 82%;
+
+    /* Accent - Amber #FBBF24 (brighter for dark mode) */
+    --accent: 43 96% 56%;
+    --accent-foreground: 217 33% 17%;
+
+    /* Status colors */
+    --warning: 48 96% 53%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 210 20% 98%;
+
+    /* Border and input */
+    --border: 217 16% 34%;
+    --input: 217 16% 34%;
+    --ring: 239 84% 67%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(239 84% 67%), hsl(243 75% 59%));
+    --gradient-accent: linear-gradient(135deg, hsl(43 96% 56%), hsl(239 84% 67%));
+    --gradient-subtle: linear-gradient(180deg, hsl(217 33% 17%), hsl(217 19% 27%));
+
+    /* Shadows */
+    --shadow-card: 0 4px 16px -2px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 12px 40px -8px hsl(0 0% 0% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
