@@ -366,7 +366,9 @@ router.get('/:id/registrations', authenticateToken, async (req, res) => {
 router.get('/public/:id', async (req, res) => {
   try {
     const event = await Event.findOne({ _id: req.params.id, status: 'approved' })
-      .populate('club', 'name');
+      .populate('club', 'name')
+      .populate('comments.user', 'name role') // Populate comment author for public view
+      .populate('comments.replies.user', 'name role'); // Populate reply author for public view
 
     if (!event) {
       return res.status(404).json({ error: 'Event not found or not approved' });
