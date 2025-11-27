@@ -53,6 +53,7 @@ const EventManagement = () => {
   const [activeTab, setActiveTab] = useState('details');
   const queryClient = useQueryClient();
   const [deleteCommentCandidate, setDeleteCommentCandidate] = useState<{ commentId: string; text: string } | null>(null);
+  const [deleteReplyCandidate, setDeleteReplyCandidate] = useState<{ commentId: string; replyId: string; text: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; text: string } | null>(null);
   const [newComment, setNewComment] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -159,6 +160,25 @@ const EventManagement = () => {
     },
     onError: (error) => {
       toast.error(`Failed to delete comment: ${error.message}`);
+    },
+  });
+
+  const deleteReplyMutation = useMutation({
+    mutationFn: ({ commentId, replyId }: { commentId: string; replyId: string }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/replies/${replyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Reply deleted successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setDeleteReplyCandidate(null);
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete reply: ${error.message}`);
     },
   });
 
@@ -536,7 +556,7 @@ const EventManagement = () => {
                         {/* Replies Section */}
                         <div className="pl-12 mt-4 space-y-4">
                           {comment.replies?.map((reply: any) => (
-                            <div key={reply._id} className="flex items-start gap-3">
+                            <div key={reply._id} className="relative flex items-start gap-3">
                               <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                                 <User className="h-4 w-4 text-primary" />
                               </div>
@@ -547,6 +567,16 @@ const EventManagement = () => {
                                 </div>
                                 <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}</p>
                                 <p className="mt-1 text-sm">{reply.text}</p>
+                                {(user?.role === 'member' || user?.role === 'coordinator') && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute top-0 right-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setDeleteReplyCandidate({ commentId: comment._id, replyId: reply._id, text: reply.text })}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -587,6 +617,26 @@ const EventManagement = () => {
                   disabled={deleteCommentMutation.isPending}
                 >
                   {deleteCommentMutation.isPending ? 'Deleting...' : 'Delete Comment'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={!!deleteReplyCandidate} onOpenChange={() => setDeleteReplyCandidate(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this reply?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the reply: "<strong>{deleteReplyCandidate?.text}</strong>".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteReplyCandidate && deleteReplyMutation.mutate({ commentId: deleteReplyCandidate.commentId, replyId: deleteReplyCandidate.replyId })}
+                  disabled={deleteReplyMutation.isPending}
+                >
+                  {deleteReplyMutation.isPending ? 'Deleting...' : 'Delete Reply'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

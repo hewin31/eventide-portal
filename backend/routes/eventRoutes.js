@@ -516,6 +516,50 @@ router.post('/:id/comments/:commentId/replies', authenticateToken, authorizeRole
     res.status(500).json({ error: 'Server error while adding reply.' });
   }
 });
+
+// -----------------------------
+// Delete a reply from a comment (Club Member/Coordinator only)
+// -----------------------------
+router.delete('/:id/comments/:commentId/replies/:replyId', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
+  try {
+    const { id: eventId, commentId, replyId } = req.params;
+    const userId = req.user.id;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    const club = await Club.findById(event.club);
+    if (!club) {
+      return res.status(404).json({ error: 'Associated club not found.' });
+    }
+
+    // Check if the user is a coordinator or member of the event's club
+    const isClubCoordinator = club.coordinators?.some(c => c.toString() === userId);
+    const isClubMember = club.members?.some(m => m.toString() === userId);
+
+    if (!isClubCoordinator && !isClubMember) {
+      return res.status(403).json({ error: 'User not authorized to delete replies for this event.' });
+    }
+
+    const comment = event.comments.id(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+    // Use .pull() to remove the subdocument from the replies array.
+    // This is the most reliable way to remove nested subdocuments.
+    comment.replies.pull({ _id: replyId });
+
+    await event.save();
+    if (event.comments.id(commentId).replies.id(replyId)) {
+      return res.status(404).json({ error: 'Reply not found.' });
+    }
+    res.status(200).json({ message: 'Reply deleted successfully.' });
+  } catch (err) {
+    debug(`Error deleting reply: ${err.message}`);
+    res.status(500).json({ error: 'Server error while deleting reply.' });
+  }
+});
 // -----------------------------
 // Get single event (private)
 // -----------------------------
