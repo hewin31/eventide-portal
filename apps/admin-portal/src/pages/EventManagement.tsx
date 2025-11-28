@@ -538,7 +538,7 @@ const EventManagement = () => {
                               <p className="font-semibold">{comment.user?.name || 'Anonymous'}</p>
                               <Badge variant="outline" className="capitalize text-xs">{comment.user?.role}</Badge>
                             </div>
-                            {(user?.role === 'member' || user?.role === 'coordinator') && (
+                            {(user?.role === 'member' || user?.role === 'coordinator' || user?.id === comment.user?._id) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -567,7 +567,7 @@ const EventManagement = () => {
                                 </div>
                                 <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}</p>
                                 <p className="mt-1 text-sm">{reply.text}</p>
-                                {(user?.role === 'member' || user?.role === 'coordinator') && (
+                                {(user?.role === 'member' || user?.role === 'coordinator' || user?.id === reply.user?._id) && (
                                   <Button
                                     variant="ghost"
                                     size="sm"

@@ -148,40 +148,47 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('coordinator'), as
 // -----------------------------
 // Delete a comment from an event (Club Member/Coordinator only)
 // -----------------------------
-router.delete('/:id/comments/:commentId', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
+router.delete('/:id/comments/:commentId', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
   try {
     const eventId = req.params.id;
     const commentId = req.params.commentId;
-    const userId = req.user.id;
+    const { id: userId, role: userRole } = req.user;
 
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ error: 'Event not found.' });
     }
 
-    const club = await Club.findById(event.club);
-    if (!club) {
-      return res.status(404).json({ error: 'Associated club not found.' });
-    }
-
-    // Check if the user is a coordinator or member of the event's club
-    const isClubCoordinator = club.coordinators?.some(c => c.toString() === userId);
-    const isClubMember = club.members?.some(m => m.toString() === userId);
-
-    if (!isClubCoordinator && !isClubMember) {
-      return res.status(403).json({ error: 'User not authorized to delete comments for this event.' });
-    }
-
-    const commentIndex = event.comments.findIndex(c => c._id.toString() === commentId);
-    if (commentIndex === -1) {
+    const comment = event.comments.id(commentId);
+    if (!comment) {
       return res.status(404).json({ error: 'Comment not found.' });
     }
 
-    event.comments.splice(commentIndex, 1); // Remove the comment
+    let canDelete = false;
+    // Rule 1: The user is the author of the comment.
+    if (comment.user.toString() === userId) {
+      canDelete = true;
+    }
+
+    // Rule 2: The user is a member or coordinator of the club that owns the event.
+    if (!canDelete && (userRole === 'member' || userRole === 'coordinator')) {
+      const club = await Club.findById(event.club);
+      if (club && (club.coordinators?.some(c => c.toString() === userId) || club.members?.some(m => m.toString() === userId))) {
+        canDelete = true;
+      }
+    }
+
+    if (!canDelete) {
+      return res.status(403).json({ error: 'User not authorized to delete this comment.' });
+    }
+
+    // Use $pull to remove the comment from the array.
+    event.comments.pull({ _id: commentId });
     await event.save();
+
     res.status(200).json({ message: 'Comment deleted successfully.' });
   } catch (err) {
-    debug(`Error deleting comment: ${err.message}`);
+    console.error(`Error deleting comment: ${err.message}`); // Enhanced logging
     res.status(500).json({ error: 'Server error while deleting comment.' });
   }
 });
@@ -520,31 +527,41 @@ router.post('/:id/comments/:commentId/replies', authenticateToken, authorizeRole
 // -----------------------------
 // Delete a reply from a comment (Club Member/Coordinator only)
 // -----------------------------
-router.delete('/:id/comments/:commentId/replies/:replyId', authenticateToken, authorizeRoles('member', 'coordinator'), async (req, res) => {
+router.delete('/:id/comments/:commentId/replies/:replyId', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
   try {
     const { id: eventId, commentId, replyId } = req.params;
-    const userId = req.user.id;
+    const { id: userId, role: userRole } = req.user;
 
     const event = await Event.findById(eventId);
     if (!event) {
       return res.status(404).json({ error: 'Event not found.' });
     }
 
-    const club = await Club.findById(event.club);
-    if (!club) {
-      return res.status(404).json({ error: 'Associated club not found.' });
-    }
-
-    // Check if the user is a coordinator or member of the event's club
-    const isClubCoordinator = club.coordinators?.some(c => c.toString() === userId);
-    const isClubMember = club.members?.some(m => m.toString() === userId);
-
-    if (!isClubCoordinator && !isClubMember) {
-      return res.status(403).json({ error: 'User not authorized to delete replies for this event.' });
-    }
-
     const comment = event.comments.id(commentId);
     if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+    const reply = comment.replies.id(replyId);
+    if (!reply) {
+      return res.status(404).json({ error: 'Reply not found.' });
+    }
+
+    let canDelete = false;
+    // Rule 1: The user is the author of the reply.
+    if (reply.user.toString() === userId) {
+      canDelete = true;
+    }
+
+    // Rule 2: The user is a member or coordinator of the club that owns the event.
+    if (!canDelete && (userRole === 'member' || userRole === 'coordinator')) {
+      const club = await Club.findById(event.club);
+      if (club && (club.coordinators?.some(c => c.toString() === userId) || club.members?.some(m => m.toString() === userId))) {
+        canDelete = true;
+      }
+    }
+
+    if (!canDelete) {
+      return res.status(403).json({ error: 'User not authorized to delete this reply.' });
+    }
 
     // Use .pull() to remove the subdocument from the replies array.
     // This is the most reliable way to remove nested subdocuments.
