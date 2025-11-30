@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart, MessageSquare, Send, User, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Users, QrCode, CheckSquare, Eye, Heart, MessageSquare, Send, User, Trash2, Pencil } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
@@ -55,6 +55,7 @@ const EventManagement = () => {
   const [deleteCommentCandidate, setDeleteCommentCandidate] = useState<{ commentId: string; text: string } | null>(null);
   const [deleteReplyCandidate, setDeleteReplyCandidate] = useState<{ commentId: string; replyId: string; text: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; text: string } | null>(null);
+  const [editingComment, setEditingComment] = useState<{ id: string; text: string } | null>(null);
   const [newComment, setNewComment] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
@@ -182,6 +183,31 @@ const EventManagement = () => {
     },
   });
 
+  const editCommentMutation = useMutation({
+    mutationFn: ({ commentId, text }: { commentId: string; text: string }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Comment updated successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setEditingComment(null); // Exit editing mode
+    },
+    onError: (error) => {
+      toast.error(`Failed to update comment: ${error.message}`);
+    },
+  });
+
+  const handleUpdateComment = () => {
+    if (!editingComment || editingComment.text.trim() === '') return;
+    editCommentMutation.mutate({ commentId: editingComment.id, text: editingComment.text });
+  };
 
   const commentMutation = useMutation({
     mutationFn: (text: string) => {
@@ -538,19 +564,42 @@ const EventManagement = () => {
                               <p className="font-semibold">{comment.user?.name || 'Anonymous'}</p>
                               <Badge variant="outline" className="capitalize text-xs">{comment.user?.role}</Badge>
                             </div>
-                            {(user?.role === 'member' || user?.role === 'coordinator' || user?.id === comment.user?._id) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-                                onClick={() => setDeleteCommentCandidate({ commentId: comment._id, text: comment.text })}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-
                             <p className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</p>
-                            <p className="mt-2">{comment.text}</p>
+                            
+                            {editingComment?.id === comment._id ? (
+                              <div className="mt-2 space-y-2">
+                                <Input
+                                  value={editingComment.text}
+                                  onChange={(e) => setEditingComment({ ...editingComment, text: e.target.value })}
+                                  autoFocus
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={handleUpdateComment} disabled={editCommentMutation.isPending}>Save</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setEditingComment(null)}>Cancel</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="absolute top-2 right-2 flex items-center">
+                                  {user?.id === comment.user?._id && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => setEditingComment({ id: comment._id, text: comment.text })}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {(user?.role === 'member' || user?.role === 'coordinator' || user?.id === comment.user?._id) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                      onClick={() => setDeleteCommentCandidate({ commentId: comment._id, text: comment.text })}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <p className="mt-2">{comment.text}</p>
+                              </>
+                            )}
                           </div>
                         </div>
                         {/* Replies Section */}

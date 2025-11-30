@@ -525,6 +525,40 @@ router.post('/:id/comments/:commentId/replies', authenticateToken, authorizeRole
 });
 
 // -----------------------------
+// Edit a comment (Author only)
+// -----------------------------
+router.patch('/:id/comments/:commentId', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
+  try {
+    const { id: eventId, commentId } = req.params;
+    const { text } = req.body;
+    const { id: userId } = req.user;
+
+    if (!text || text.trim() === '') {
+      return res.status(400).json({ error: 'Comment text cannot be empty.' });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+    const comment = event.comments.id(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+    // Authorization: Only the author can edit their comment.
+    if (comment.user.toString() !== userId) {
+      return res.status(403).json({ error: 'You are not authorized to edit this comment.' });
+    }
+
+    comment.text = text;
+    await event.save();
+
+    res.status(200).json({ message: 'Comment updated successfully.', comment });
+  } catch (err) {
+    debug(`Error editing comment: ${err.message}`);
+    res.status(500).json({ error: 'Server error while editing comment.' });
+  }
+});
+
+// -----------------------------
 // Delete a reply from a comment (Club Member/Coordinator only)
 // -----------------------------
 router.delete('/:id/comments/:commentId/replies/:replyId', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
