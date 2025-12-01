@@ -55,6 +55,7 @@ const EventManagement = () => {
   const [deleteCommentCandidate, setDeleteCommentCandidate] = useState<{ commentId: string; text: string } | null>(null);
   const [deleteReplyCandidate, setDeleteReplyCandidate] = useState<{ commentId: string; replyId: string; text: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; text: string } | null>(null);
+  const [editingReply, setEditingReply] = useState<{ commentId: string; replyId: string; text: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ id: string; text: string } | null>(null);
   const [newComment, setNewComment] = useState('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -204,6 +205,29 @@ const EventManagement = () => {
     },
   });
 
+  const editReplyMutation = useMutation({
+    mutationFn: ({ commentId, replyId, text }: { commentId: string; replyId: string; text: string }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/replies/${replyId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success('Reply updated successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setEditingReply(null);
+    },
+    onError: (error) => {
+      toast.error(`Failed to update reply: ${error.message}`);
+    },
+  });
+
+
+
   const handleUpdateComment = () => {
     if (!editingComment || editingComment.text.trim() === '') return;
     editCommentMutation.mutate({ commentId: editingComment.id, text: editingComment.text });
@@ -233,6 +257,11 @@ const EventManagement = () => {
   const handlePostComment = () => {
     if (newComment.trim() === '') return;
     commentMutation.mutate(newComment);
+  };
+
+  const handleUpdateReply = (commentId: string, replyId: string) => {
+    if (!editingReply || editingReply.text.trim() === '') return;
+    editReplyMutation.mutate({ commentId: commentId, replyId: replyId, text: editingReply.text });
   };
 
   const handleExportList = () => {
@@ -615,16 +644,40 @@ const EventManagement = () => {
                                   <Badge variant="secondary" className="capitalize text-xs">{reply.user?.role}</Badge>
                                 </div>
                                 <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}</p>
-                                <p className="mt-1 text-sm">{reply.text}</p>
-                                {(user?.role === 'member' || user?.role === 'coordinator' || user?.id === reply.user?._id) && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute top-0 right-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => setDeleteReplyCandidate({ commentId: comment._id, replyId: reply._id, text: reply.text })}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                
+                                {editingReply?.replyId === reply._id ? (
+                                  <div className="mt-2 space-y-2">
+                                    <Input
+                                      value={editingReply.text}
+                                      onChange={(e) => setEditingReply({ ...editingReply, text: e.target.value })}
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                      <Button size="sm" onClick={() => handleUpdateReply(comment._id, reply._id)} disabled={editReplyMutation.isPending}>Save</Button>
+                                      <Button size="sm" variant="ghost" onClick={() => setEditingReply(null)}>Cancel</Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="absolute top-0 right-0 flex items-center">
+                                      {user?.id === reply.user?._id && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => setEditingReply({ commentId: comment._id, replyId: reply._id, text: reply.text })}>
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                      {(user?.role === 'member' || user?.role === 'coordinator' || user?.id === reply.user?._id) && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                          onClick={() => setDeleteReplyCandidate({ commentId: comment._id, replyId: reply._id, text: reply.text })}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <p className="mt-1 text-sm">{reply.text}</p>
+                                  </>
                                 )}
                               </div>
                             </div>

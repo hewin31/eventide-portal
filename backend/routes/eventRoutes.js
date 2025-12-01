@@ -559,6 +559,39 @@ router.patch('/:id/comments/:commentId', authenticateToken, authorizeRoles('stud
 });
 
 // -----------------------------
+// Edit a reply (Author only)
+// -----------------------------
+router.patch('/:id/comments/:commentId/replies/:replyId', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
+  try {
+    const { id: eventId, commentId, replyId } = req.params;
+    const { text } = req.body;
+    const { id: userId } = req.user;
+
+    if (!text) return res.status(400).json({ error: 'Reply text cannot be empty.' });
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+    const comment = event.comments.id(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+    const reply = comment.replies.id(replyId);
+    if (!reply) return res.status(404).json({ error: 'Reply not found.' });
+
+    if (reply.user.toString() !== userId) {
+      return res.status(403).json({ error: 'You can only edit your own replies.' });
+    }
+
+    reply.text = text;
+    await event.save();
+
+    res.status(200).json({ message: 'Reply updated successfully.', reply });
+  } catch (err) {
+    debug(`Error editing reply: ${err.message}`);
+    res.status(500).json({ error: 'Server error while editing reply.' });
+  }
+});
+// -----------------------------
 // Delete a reply from a comment (Club Member/Coordinator only)
 // -----------------------------
 router.delete('/:id/comments/:commentId/replies/:replyId', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
