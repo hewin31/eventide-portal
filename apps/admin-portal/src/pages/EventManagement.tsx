@@ -226,6 +226,43 @@ const EventManagement = () => {
     },
   });
 
+  const likeCommentMutation = useMutation({
+    mutationFn: ({ commentId }: { commentId: string }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+    },
+    onMutate: async ({ commentId }) => {
+      await queryClient.cancelQueries({ queryKey: ['event', eventId] });
+      const previousEvent = queryClient.getQueryData(['event', eventId]);
+
+      queryClient.setQueryData(['event', eventId], (oldEvent: any) => {
+        const newComments = oldEvent.comments.map((comment: any) => {
+          if (comment._id === commentId) {
+            const userHasLiked = comment.likes.includes(user?.id);
+            const newLikes = userHasLiked
+              ? comment.likes.filter((id: string) => id !== user?.id)
+              : [...comment.likes, user?.id];
+            return { ...comment, likes: newLikes };
+          }
+          return comment;
+        });
+        return { ...oldEvent, comments: newComments };
+      });
+
+      return { previousEvent };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousEvent) {
+        queryClient.setQueryData(['event', eventId], context.previousEvent);
+      }
+      toast.error('Failed to update like status.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
 
 
   const handleUpdateComment = () => {
@@ -628,6 +665,21 @@ const EventManagement = () => {
                                 </div>
                                 <p className="mt-2">{comment.text}</p>
                               </>
+                            )}
+
+                            {/* Like Button for Comments */}
+                            {!editingComment?.id && (
+                              <div className="mt-3 flex items-center gap-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex items-center gap-1 text-muted-foreground"
+                                  onClick={() => likeCommentMutation.mutate({ commentId: comment._id })}
+                                >
+                                  <Heart className={`h-4 w-4 ${comment.likes?.includes(user?.id) ? 'text-red-500 fill-red-500' : ''}`} />
+                                  {comment.likes?.length || 0}
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>

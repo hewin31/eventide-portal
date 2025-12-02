@@ -591,6 +591,40 @@ router.patch('/:id/comments/:commentId/replies/:replyId', authenticateToken, aut
     res.status(500).json({ error: 'Server error while editing reply.' });
   }
 });
+
+// -----------------------------
+// Like/Unlike a comment
+// -----------------------------
+router.post('/:id/comments/:commentId/like', authenticateToken, authorizeRoles('student', 'member', 'coordinator'), async (req, res) => {
+  try {
+    const { id: eventId, commentId } = req.params;
+    const { id: userId } = req.user;
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+    const comment = event.comments.id(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+    const userLikeIndex = comment.likes.findIndex(likeId => likeId.toString() === userId);
+
+    if (userLikeIndex > -1) {
+      // User has already liked, so unlike
+      comment.likes.splice(userLikeIndex, 1);
+      await event.save();
+      res.status(200).json({ message: 'Comment unliked successfully.', liked: false, likesCount: comment.likes.length });
+    } else {
+      // User has not liked, so like
+      comment.likes.push(userId);
+      await event.save();
+      res.status(200).json({ message: 'Comment liked successfully.', liked: true, likesCount: comment.likes.length });
+    }
+  } catch (err) {
+    debug(`Error liking comment: ${err.message}`);
+    res.status(500).json({ error: 'Server error while liking comment.' });
+  }
+});
+
 // -----------------------------
 // Delete a reply from a comment (Club Member/Coordinator only)
 // -----------------------------

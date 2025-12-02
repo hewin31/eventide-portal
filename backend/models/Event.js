@@ -10,14 +10,16 @@ const ContactPersonSchema = new mongoose.Schema({
 const ReplySchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   text: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const CommentSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   text: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
-  replies: [ReplySchema]
+  replies: [ReplySchema],
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const EventSchema = new mongoose.Schema({
