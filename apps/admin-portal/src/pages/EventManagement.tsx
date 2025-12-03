@@ -264,6 +264,46 @@ const EventManagement = () => {
     },
   });
 
+  const likeReplyMutation = useMutation({
+    mutationFn: ({ commentId, replyId }: { commentId: string; replyId: string }) => {
+      return fetch(`${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/replies/${replyId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+    },
+    onMutate: async ({ commentId, replyId }) => {
+      await queryClient.cancelQueries({ queryKey: ['event', eventId] });
+      const previousEvent = queryClient.getQueryData(['event', eventId]);
+
+      queryClient.setQueryData(['event', eventId], (oldEvent: any) => {
+        const newComments = oldEvent.comments.map((c: any) =>
+          c._id === commentId
+            ? {
+                ...c,
+                replies: c.replies.map((r: any) =>
+                  r._id === replyId
+                    ? { ...r, likes: r.likes.includes(user?.id) ? r.likes.filter((id: string) => id !== user?.id) : [...r.likes, user?.id] }
+                    : r
+                ),
+              }
+            : c
+        );
+        return { ...oldEvent, comments: newComments };
+      });
+
+      return { previousEvent };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousEvent) {
+        queryClient.setQueryData(['event', eventId], context.previousEvent);
+      }
+      toast.error('Failed to update like status.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
+
 
   const handleUpdateComment = () => {
     if (!editingComment || editingComment.text.trim() === '') return;
@@ -730,6 +770,22 @@ const EventManagement = () => {
                                     </div>
                                     <p className="mt-1 text-sm">{reply.text}</p>
                                   </>
+                                )}
+
+                                {/* Like Button for Replies */}
+                                {!editingReply?.replyId && (
+                                  <div className="mt-2 flex items-center">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-1 text-muted-foreground"
+                                      onClick={() => likeReplyMutation.mutate({ commentId: comment._id, replyId: reply._id })}
+                                      disabled={likeReplyMutation.isPending}
+                                    >
+                                      <Heart className={`h-4 w-4 ${reply.likes?.includes(user?.id) ? 'text-red-500 fill-red-500' : ''}`} />
+                                      {reply.likes?.length || 0}
+                                    </Button>
+                                  </div>
                                 )}
                               </div>
                             </div>
