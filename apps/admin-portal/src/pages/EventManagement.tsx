@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +58,7 @@ const EventManagement = () => {
   const [editingReply, setEditingReply] = useState<{ commentId: string; replyId: string; text: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ id: string; text: string } | null>(null);
   const [newComment, setNewComment] = useState('');
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'popular'
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const isCoordinator = user?.role === 'coordinator';
@@ -289,6 +290,23 @@ const EventManagement = () => {
     if (!editingComment || editingComment.text.trim() === '') return;
     editCommentMutation.mutate({ commentId: editingComment.id, text: editingComment.text });
   };
+
+  const sortedComments = useMemo(() => {
+    if (!event?.comments) return [];
+    // Create a shallow copy to avoid mutating the original array from react-query cache
+    const commentsCopy = [...event.comments];
+
+    if (sortOrder === 'newest') {
+      return commentsCopy.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    if (sortOrder === 'oldest') {
+      return commentsCopy.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    if (sortOrder === 'popular') {
+      return commentsCopy.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+    }
+    return commentsCopy;
+  }, [event?.comments, sortOrder]);
 
   const commentMutation = useMutation({
     mutationFn: (text: string) => {
@@ -638,8 +656,15 @@ const EventManagement = () => {
                       <Send className="mr-2 h-4 w-4" /> Post
                     </Button>
                   </div>
-                  {event.comments && event.comments.length > 0 ? (
-                    event.comments.map((comment: any) => (
+                  {/* Sorting Controls */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Sort by:</span>
+                    <Button variant={sortOrder === 'newest' ? 'secondary' : 'ghost'} size="sm" onClick={() => setSortOrder('newest')}>Newest</Button>
+                    <Button variant={sortOrder === 'oldest' ? 'secondary' : 'ghost'} size="sm" onClick={() => setSortOrder('oldest')}>Oldest</Button>
+                    <Button variant={sortOrder === 'popular' ? 'secondary' : 'ghost'} size="sm" onClick={() => setSortOrder('popular')}>Popular</Button>
+                  </div>
+                  {sortedComments && sortedComments.length > 0 ? (
+                    sortedComments.map((comment: any) => (
                       <div key={comment._id} className="p-4 border rounded-lg">
                         <div className="relative flex items-start gap-3">
                           <div className="flex-shrink-0 h-10 w-10 rounded-full bg-muted flex items-center justify-center">
